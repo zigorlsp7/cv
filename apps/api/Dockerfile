@@ -6,19 +6,20 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
-RUN npm ci
+RUN npm ci -w @cv/api
 
 # ---- deps (production-only) ----
 FROM base AS prod-deps
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
-RUN npm ci --omit=dev
+RUN npm ci -w @cv/api --omit=dev
 
 # ---- dev ----
 FROM base AS dev
 ENV NODE_ENV=development
 COPY --from=deps /app/node_modules /app/node_modules
+COPY --from=deps /app/apps/api/node_modules /app/apps/api/node_modules
 COPY apps/api /app/apps/api
 COPY package.json /app/package.json
 WORKDIR /app
@@ -29,18 +30,20 @@ CMD ["npm", "run", "start:dev", "-w", "@cv/api"]
 FROM base AS build
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules /app/node_modules
+COPY --from=deps /app/apps/api/node_modules /app/apps/api/node_modules
 COPY apps/api /app/apps/api
 COPY package.json /app/package.json
-WORKDIR /app
-RUN npm run build -w @cv/api
+WORKDIR /app/apps/api
+RUN npm run build
 
 # ---- prod ----
 FROM node:20-alpine AS prod
-WORKDIR /app
+WORKDIR /app/apps/api
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=build /app/apps/api/dist /app/dist
-COPY apps/api/package.json /app/package.json
+COPY --from=prod-deps /app/apps/api/node_modules /app/apps/api/node_modules
+COPY --from=build /app/apps/api/dist /app/apps/api/dist
+COPY apps/api/package.json /app/apps/api/package.json
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
