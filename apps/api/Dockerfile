@@ -1,36 +1,36 @@
-# ---- deps ----
-FROM node:20-alpine AS deps
+# ---- base ----
+FROM node:20-alpine AS base
 WORKDIR /app
 
-# Copy workspace manifests
+# ---- deps (dev + build) ----
+FROM base AS deps
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
-
-# Install only what the api workspace needs
 RUN npm ci
 
-# ---- dev ----
-FROM node:20-alpine AS dev
-WORKDIR /app
-ENV NODE_ENV=development
+# ---- deps (production-only) ----
+FROM base AS prod-deps
+ENV NODE_ENV=production
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/package.json
+RUN npm ci --omit=dev
 
+# ---- dev ----
+FROM base AS dev
+ENV NODE_ENV=development
 COPY --from=deps /app/node_modules /app/node_modules
 COPY apps/api /app/apps/api
 COPY package.json /app/package.json
-
 WORKDIR /app/apps/api
 EXPOSE 3000
-CMD ["npm","run","start:dev"]
+CMD ["npm", "run", "start:dev"]
 
 # ---- build ----
-FROM node:20-alpine AS build
-WORKDIR /app
+FROM base AS build
 ENV NODE_ENV=production
-
 COPY --from=deps /app/node_modules /app/node_modules
 COPY apps/api /app/apps/api
 COPY package.json /app/package.json
-
 WORKDIR /app/apps/api
 RUN npm run build
 
@@ -38,10 +38,9 @@ RUN npm run build
 FROM node:20-alpine AS prod
 WORKDIR /app
 ENV NODE_ENV=production
-
+COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/apps/api/dist /app/dist
-COPY --from=deps /app/node_modules /app/node_modules
 COPY apps/api/package.json /app/package.json
-
+USER node
 EXPOSE 3000
-CMD ["node","dist/main.js"]
+CMD ["node", "dist/main.js"]

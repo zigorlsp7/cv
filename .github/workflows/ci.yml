@@ -6,9 +6,109 @@ on:
     branches: [main]
 
 jobs:
-  ci:
+  quality:
+    name: Quality (Lint + Typecheck + Build + Unit Coverage)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint workspaces
+        run: npm run lint
+
+      - name: Typecheck workspaces
+        run: npm run typecheck
+
+      - name: Build workspaces
+        run: npm run build --workspaces
+
+      - name: Unit tests with coverage (api)
+        run: npm run test:cov -w @cv/api -- --watchman=false --ci
+
+      - name: Upload api coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: apps/api/coverage
+          if-no-files-found: warn
+
+  integration-e2e:
+    name: Integration + E2E + k6
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: quality
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Compose up (postgres_test + api_test)
+        run: docker compose -f docker/compose.yml --profile test up -d --build postgres_test api_test
+
+      - name: Wait for API (test)
+        run: |
+          i=1
+          while [ $i -le 60 ]; do
+            if curl -fsS http://localhost:3003/v1/health/ready > /dev/null; then
+              echo "API test is healthy"
+              exit 0
+            fi
+            sleep 2
+            i=$((i+1))
+          done
+          docker compose -f docker/compose.yml logs --no-color api_test
+          exit 1
+
+      - name: Run migrations (test DB)
+        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run migration:run -w @cv/api
+
+      - name: Integration tests (api)
+        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:int -w @cv/api -- --watchman=false --detectOpenHandles
+
+      - name: E2E tests (api)
+        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:e2e -w @cv/api -- --watchman=false --detectOpenHandles
+
+      - name: k6 smoke (test)
+        run: docker compose -f docker/compose.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
+
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary-test
+          path: artifacts/k6-summary-test.json
+          if-no-files-found: warn
+
+      - name: Compose logs (on failure)
+        if: failure()
+        run: docker compose -f docker/compose.yml logs --no-color
+
+      - name: Compose down
+        if: always()
+        run: docker compose -f docker/compose.yml down -v
+
+  security-supply-chain:
+    name: Security + Supply Chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: quality
 
     steps:
       - uses: actions/checkout@v6
@@ -24,53 +124,54 @@ jobs:
       - name: Audit dependencies (prod only, high+)
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Build workspaces
-        run: npm run build --workspaces
-
-      - name: Compose up (postgres_test + api_test)
-        run: docker compose -f docker/compose.yml --profile test up -d --build postgres_test api_test
-
-      - name: Wait for API (test)
+      - name: Build prod images
         run: |
-          i=1
-          while [ $i -le 60 ]; do
-            if curl -fsS http://localhost:3003/v1/health > /dev/null; then
-              echo "API test is healthy"
-              exit 0
-            fi
-            sleep 2
-            i=$((i+1))
-          done
-          docker compose -f docker/compose.yml logs --no-color api_test
-          exit 1
+          docker build -f apps/api/Dockerfile --target prod -t cv-api:ci .
+          docker build -f apps/web/Dockerfile --target prod -t cv-web:ci .
 
-      - name: Run migrations (test DB)
-        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run migration:run -w @cv/api
-        
-      - name: Unit tests (api)
-        run: npm test -w @cv/api
+      - name: Trivy scan (api image)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: cv-api:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
 
-      - name: Integration tests (api)
-        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:int -w @cv/api
+      - name: Trivy scan (web image)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: cv-web:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
 
-      - name: E2E tests (api)
-        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:e2e -w @cv/api
+      - name: Prepare artifacts dir
+        run: mkdir -p artifacts
 
-      - name: k6 smoke (test)
-        run: docker compose -f docker/compose.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
+      - name: Generate SBOM (api image)
+        uses: anchore/sbom-action@v0
+        with:
+          image: cv-api:ci
+          format: spdx-json
+          output-file: artifacts/sbom-api.spdx.json
 
-      - name: Upload k6 summary
+      - name: Generate SBOM (web image)
+        uses: anchore/sbom-action@v0
+        with:
+          image: cv-web:ci
+          format: spdx-json
+          output-file: artifacts/sbom-web.spdx.json
+
+      - name: Upload SBOM artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-summary
-          path: artifacts/k6-summary.json
-          if-no-files-found: warn
-
-      - name: Compose logs (on failure)
-        if: failure()
-        run: docker compose -f docker/compose.yml logs --no-color
-
-      - name: Compose down
-        if: always()
-        run: docker compose -f docker/compose.yml down -v
+          name: sbom
+          path: |
+            artifacts/sbom-api.spdx.json
+            artifacts/sbom-web.spdx.json
+          if-no-files-found: error
