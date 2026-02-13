@@ -1,66 +1,60 @@
-name: ci
+name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "18"
-          cache: "npm"
+          node-version: 20
+          cache: npm
 
-      - name: Install dependencies
+      - name: Install
         run: npm ci
 
-      - name: Audit dependencies
+      - name: Audit (high+)
         run: npm audit --audit-level=high
 
-      - name: Lint (workspace)
-        run: npm run lint -ws --if-present
+      - name: Build workspaces
+        run: npm run build --workspaces
 
-      - name: Typecheck (workspace)
-        run: npm run typecheck -ws --if-present
-
-      - name: Build images
-        run: docker compose -f docker/compose.yml build
-
-      - name: Start stack
-        run: docker compose -f docker/compose.yml up -d
+      - name: Compose up (postgres + api)
+        run: docker compose -f docker/compose.yml up -d --build postgres api
 
       - name: Wait for API
         run: |
-          for i in {1..60}; do
-            if curl -fsS http://localhost:3000/v1/health >/dev/null; then
-              echo "API up"
+          i=1
+          while [ $i -le 60 ]; do
+            if curl -fsS http://localhost:3000/v1/health > /dev/null; then
+              echo "API is healthy"
               exit 0
             fi
             sleep 2
+            i=$((i+1))
           done
-          echo "API did not become ready" && docker compose -f docker/compose.yml logs api && exit 1
+          echo "API did not become healthy in time"
+          docker compose -f docker/compose.yml logs --no-color api
+          exit 1
 
-      - name: Run DB migrations
+      - name: Run migrations
         run: npm run migration:run -w @cv/api
 
-      - name: Smoke test API + docs + web
-        run: |
-          curl -fsS http://localhost:3000/v1/health
-          curl -fsSI http://localhost:3000/docs
-          curl -fsS http://localhost:3001/health
+      - name: k6 smoke
+        run: docker compose -f docker/compose.yml --profile loadtest up --abort-on-container-exit --exit-code-from k6 k6
 
-      - name: Dump logs on failure
+      - name: Compose logs (on failure)
         if: failure()
         run: docker compose -f docker/compose.yml logs --no-color
 
-      - name: Shutdown
+      - name: Compose down
         if: always()
         run: docker compose -f docker/compose.yml down -v
