@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
 
@@ -38,4 +38,4 @@ jobs:
       # CodeQL prefers a build step if the project has one
       - run: npm run build --workspaces
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
