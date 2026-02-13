@@ -1,6 +1,11 @@
 global:
   scrape_interval: 5s
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 scrape_configs:
   - job_name: "cv-api"
     metrics_path: /metrics
@@ -9,3 +14,4 @@ scrape_configs:
 
 rule_files:
   - /etc/prometheus/prometheus.rules.yml
+  - /etc/prometheus/prometheus.alerts.yml

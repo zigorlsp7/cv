@@ -175,3 +175,52 @@ jobs:
             artifacts/sbom-api.spdx.json
             artifacts/sbom-web.spdx.json
           if-no-files-found: error
+
+  web-smoke-optional:
+    name: Web Smoke (Optional Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: quality
+    if: ${{ vars.ENABLE_PLAYWRIGHT_SMOKE == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx --yes playwright install --with-deps chromium
+
+      - name: Compose up (postgres + api + web)
+        run: docker compose -f docker/compose.yml up -d --build postgres api web
+
+      - name: Wait for web
+        run: |
+          i=1
+          while [ $i -le 60 ]; do
+            if curl -fsS http://localhost:3001 > /dev/null; then
+              echo "Web is reachable"
+              exit 0
+            fi
+            sleep 2
+            i=$((i+1))
+          done
+          docker compose -f docker/compose.yml logs --no-color web api
+          exit 1
+
+      - name: Run smoke tests
+        run: WEB_BASE_URL=http://localhost:3001 npm run test:smoke -w web
+
+      - name: Compose logs (on failure)
+        if: failure()
+        run: docker compose -f docker/compose.yml logs --no-color web api
+
+      - name: Compose down
+        if: always()
+        run: docker compose -f docker/compose.yml down -v

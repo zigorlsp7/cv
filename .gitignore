@@ -17,3 +17,13 @@ coverage/
 .DS_Store
 
 artifacts/
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# playwright
+playwright-report/
+test-results/
