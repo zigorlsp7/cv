@@ -37,6 +37,14 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=build /workspace/apps/web/.next/standalone ./
 COPY --from=build /workspace/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /workspace/apps/web/public ./apps/web/public
+RUN rm -rf \
+  /usr/local/lib/node_modules/npm \
+  /usr/lib/node_modules/npm \
+  /usr/local/bin/npm \
+  /usr/local/bin/npx \
+  /usr/bin/npm \
+  /usr/bin/npx \
+  || true
 USER node
 EXPOSE 3001
 CMD ["node", "server.js"]

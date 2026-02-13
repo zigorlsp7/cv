@@ -44,6 +44,14 @@ COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=prod-deps /app/apps/api/node_modules /app/apps/api/node_modules
 COPY --from=build /app/apps/api/dist /app/apps/api/dist
 COPY apps/api/package.json /app/apps/api/package.json
+RUN rm -rf \
+  /usr/local/lib/node_modules/npm \
+  /usr/lib/node_modules/npm \
+  /usr/local/bin/npm \
+  /usr/local/bin/npx \
+  /usr/bin/npm \
+  /usr/bin/npx \
+  || true
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
