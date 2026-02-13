@@ -92,6 +92,14 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 0,
+        "functions": 5,
+        "lines": 2,
+        "statements": 3
+      }
+    },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }
