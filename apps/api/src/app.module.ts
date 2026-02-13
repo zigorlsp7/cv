@@ -12,13 +12,13 @@ import { HealthModule } from './modules/health/health.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { RequestIdMiddleware } from './observability/request-id.middleware';
 
-const ttl = Number(process.env.RATE_LIMIT_TTL_MS)
-const limit = Number(process.env.RATE_LIMIT_LIMIT)
+const ttl = Number(process.env.RATE_LIMIT_TTL_MS);
+const limit = Number(process.env.RATE_LIMIT_LIMIT);
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(typeOrmConfig), 
-    HealthModule, 
+    TypeOrmModule.forRoot(typeOrmConfig),
+    HealthModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.LOG_LEVEL ?? 'info',
@@ -40,20 +40,21 @@ const limit = Number(process.env.RATE_LIMIT_LIMIT)
     }),
     MetricsModule,
     ThrottlerModule.forRoot({
-      throttlers: [
-        { ttl, limit },
-      ],
-    })
+      throttlers: [{ ttl, limit }],
+    }),
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, DbHealthService,  
+  providers: [
+    AppService,
+    DbHealthService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
-    },],
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestIdMiddleware).forRoutes('*')
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
   }
 }

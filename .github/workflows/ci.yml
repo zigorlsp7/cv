@@ -27,29 +27,37 @@ jobs:
       - name: Build workspaces
         run: npm run build --workspaces
 
-      - name: Compose up (postgres + api)
-        run: docker compose -f docker/compose.yml up -d --build postgres api
+      - name: Compose up (postgres_test + api_test)
+        run: docker compose -f docker/compose.yml --profile test up -d --build postgres_test api_test
 
-      - name: Wait for API
+      - name: Wait for API (test)
         run: |
           i=1
           while [ $i -le 60 ]; do
-            if curl -fsS http://localhost:3000/v1/health > /dev/null; then
-              echo "API is healthy"
+            if curl -fsS http://localhost:3003/v1/health > /dev/null; then
+              echo "API test is healthy"
               exit 0
             fi
             sleep 2
             i=$((i+1))
           done
-          echo "API did not become healthy in time"
-          docker compose -f docker/compose.yml logs --no-color api
+          docker compose -f docker/compose.yml logs --no-color api_test
           exit 1
 
-      - name: Run migrations
-        run: npm run migration:run -w @cv/api
+      - name: Run migrations (test DB)
+        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run migration:run -w @cv/api
+        
+      - name: Unit tests (api)
+        run: npm test -w @cv/api
 
-      - name: k6 smoke
-        run: docker compose -f docker/compose.yml --profile loadtest up --abort-on-container-exit --exit-code-from k6 k6
+      - name: Integration tests (api)
+        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:int -w @cv/api
+
+      - name: E2E tests (api)
+        run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:e2e -w @cv/api
+
+      - name: k6 smoke (test)
+        run: docker compose -f docker/compose.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
 
       - name: Compose logs (on failure)
         if: failure()

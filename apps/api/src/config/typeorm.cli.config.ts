@@ -1,18 +1,15 @@
 import { DataSourceOptions } from 'typeorm';
-import { Dummy } from '../modules/infrastructure/dummy.entity';
 
-export const typeOrmCliConfig: DataSourceOptions = {
-  type: 'postgres',
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 5432),
-  username: process.env.DB_USER ?? 'app',
-  password: process.env.DB_PASSWORD ?? 'app',
-  database: process.env.DB_NAME ?? 'cv',
+export function buildTypeOrmCliConfig(): DataSourceOptions {
+  return {
+    type: 'postgres',
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
 
-  synchronize: false,
-  logging: true,
-
-  entities: [Dummy],
-
-  migrations: ['src/migrations/*.ts'],
-};
+    entities: ['src/**/*.entity.ts'],
+    migrations: ['src/migrations/*.ts'],
+  };
+}
