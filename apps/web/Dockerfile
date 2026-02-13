@@ -13,9 +13,9 @@ FROM base AS dev
 ENV NODE_ENV=development
 COPY --from=deps /workspace/node_modules /workspace/node_modules
 COPY apps/web apps/web
-WORKDIR /workspace/apps/web
+WORKDIR /workspace
 EXPOSE 3001
-CMD ["npm", "run", "dev", "--", "-p", "3001", "-H", "0.0.0.0"]
+CMD ["npm", "run", "dev", "-w", "web", "--", "-p", "3001", "-H", "0.0.0.0"]
 
 # ---- build ----
 FROM base AS build
@@ -23,8 +23,8 @@ ENV NODE_ENV=production
 COPY --from=deps /workspace/node_modules /workspace/node_modules
 COPY package.json /workspace/package.json
 COPY apps/web /workspace/apps/web
-WORKDIR /workspace/apps/web
-RUN npm run build
+WORKDIR /workspace
+RUN npm run build -w web
 
 # ---- prod ----
 FROM node:20-alpine AS prod

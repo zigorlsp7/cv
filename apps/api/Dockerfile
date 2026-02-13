@@ -21,9 +21,9 @@ ENV NODE_ENV=development
 COPY --from=deps /app/node_modules /app/node_modules
 COPY apps/api /app/apps/api
 COPY package.json /app/package.json
-WORKDIR /app/apps/api
+WORKDIR /app
 EXPOSE 3000
-CMD ["npm", "run", "start:dev"]
+CMD ["npm", "run", "start:dev", "-w", "@cv/api"]
 
 # ---- build ----
 FROM base AS build
@@ -31,8 +31,8 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules /app/node_modules
 COPY apps/api /app/apps/api
 COPY package.json /app/package.json
-WORKDIR /app/apps/api
-RUN npm run build
+WORKDIR /app
+RUN npm run build -w @cv/api
 
 # ---- prod ----
 FROM node:20-alpine AS prod
