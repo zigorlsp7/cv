@@ -1,3 +1,5 @@
+name: cvweb
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -146,6 +148,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ../docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../docker/prometheus.rules.yml:/etc/prometheus/prometheus.rules.yml:ro
     ports:
       - "9090:9090"
     depends_on:
@@ -190,7 +193,8 @@ services:
       API_BASE_URL: http://api:3000
     volumes:
       - ../loadtest:/scripts:ro
-    command: ["run", "/scripts/health.js"]
+      - ../artifacts:/artifacts
+    command: ["run", "--summary-export", "/artifacts/k6-summary.json", "/scripts/health.js"]
     depends_on:
       - api
 
@@ -201,7 +205,8 @@ services:
       API_BASE_URL: http://api_test:3000
     volumes:
       - ../loadtest:/scripts:ro
-    command: ["run", "/scripts/health.js"]
+      - ../artifacts:/artifacts
+    command: ["run", "--summary-export", "/artifacts/k6-summary-test.json", "/scripts/health.js"]
     depends_on:
       - api_test
 

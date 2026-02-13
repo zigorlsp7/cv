@@ -59,6 +59,14 @@ jobs:
       - name: k6 smoke (test)
         run: docker compose -f docker/compose.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
 
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary
+          path: artifacts/k6-summary.json
+          if-no-files-found: warn
+
       - name: Compose logs (on failure)
         if: failure()
         run: docker compose -f docker/compose.yml logs --no-color
