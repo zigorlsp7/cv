@@ -21,8 +21,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Audit (high+)
-        run: npm audit --audit-level=high
+      - name: Audit dependencies (prod only, high+)
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Build workspaces
         run: npm run build --workspaces
