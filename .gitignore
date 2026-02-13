@@ -1,0 +1,16 @@
+# deps
+node_modules/
+
+# env
+.env
+.env.*
+
+# builds
+dist/
+.next/
+out/
+coverage/
+
+# logs / OS
+*.log
+.DS_Store

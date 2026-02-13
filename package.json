@@ -1,0 +1,13 @@
+{
+  "name": "cv-web",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "lint": "npm run lint -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "test": "npm run test -ws --if-present",
+    "audit": "npm audit --audit-level=high"
+  }
+}

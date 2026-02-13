@@ -1,0 +1,149 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: cv
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d cv"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: app
+      DB_PASSWORD: app
+      DB_NAME: cv
+      OTEL_SERVICE_NAME: cv-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../apps/api:/app/apps/api
+      - ../package.json:/app/package.json
+      - ../package-lock.json:/app/package-lock.json
+      - ../node_modules:/app/node_modules
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://api:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+    volumes:
+      - ../apps/web:/workspace/apps/web
+      - /workspace/node_modules
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.98.0
+    command: ["--config=/etc/otelcol/config.yml"]
+    volumes:
+      - ../docker/otel-collector-config.yml:/etc/otelcol/config.yml:ro
+    ports:
+      - "4319:4317"     # optional host access (gRPC)
+      - "4320:4318"     # optional host access (HTTP)
+    depends_on:
+      - jaeger
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ../docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
+  loki:
+    image: grafana/loki:2.9.8
+    command: ["-config.file=/etc/loki/config.yml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ../docker/loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes:
+      - ../docker/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+
+  k6:
+    image: grafana/k6:0.49.0
+    profiles: ["loadtest"]
+    environment:
+      API_BASE_URL: http://api:3000
+    volumes:
+      - ../loadtest:/scripts:ro
+    command: ["run", "/scripts/health.js"]
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  grafana-data:
+  loki-data:

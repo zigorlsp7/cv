@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Lint (workspace)
+        run: npm run lint -ws --if-present
+
+      - name: Typecheck (workspace)
+        run: npm run typecheck -ws --if-present
+
+      - name: Build images
+        run: docker compose -f docker/compose.yml build
+
+      - name: Start stack
+        run: docker compose -f docker/compose.yml up -d
+
+      - name: Wait for API
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:3000/v1/health >/dev/null; then
+              echo "API up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become ready" && docker compose -f docker/compose.yml logs api && exit 1
+
+      - name: Run DB migrations
+        run: npm run migration:run -w @cv/api
+
+      - name: Smoke test API + docs + web
+        run: |
+          curl -fsS http://localhost:3000/v1/health
+          curl -fsSI http://localhost:3000/docs
+          curl -fsS http://localhost:3001/health
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker/compose.yml logs --no-color
+
+      - name: Shutdown
+        if: always()
+        run: docker compose -f docker/compose.yml down -v
