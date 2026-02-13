@@ -11,6 +11,7 @@ import { HealthController } from './modules/health/health.controller';
 import { HealthModule } from './modules/health/health.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { RequestIdMiddleware } from './observability/request-id.middleware';
+import { getOtelIds } from './observability/otel-log-context';
 
 const ttl = Number(process.env.RATE_LIMIT_TTL_MS);
 const limit = Number(process.env.RATE_LIMIT_LIMIT);
@@ -22,7 +23,6 @@ const limit = Number(process.env.RATE_LIMIT_LIMIT);
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.LOG_LEVEL ?? 'info',
-        // Pretty only for local dev if you want:
         transport:
           process.env.NODE_ENV !== 'production'
             ? {
@@ -30,12 +30,14 @@ const limit = Number(process.env.RATE_LIMIT_LIMIT);
                 options: { singleLine: true, colorize: true },
               }
             : undefined,
-        // Attach request id to each log
-        customProps: (req) => ({
-          requestId: (req as any).requestId,
+
+        customProps: (req, res) => ({
+          requestId:
+            (res?.getHeader?.('x-request-id') as string | undefined) ||
+            (req.headers['x-request-id'] as string | undefined) ||
+            (req as any).requestId,
+          ...getOtelIds(),
         }),
-        // Avoid logging noisy endpoints if you want (optional):
-        // autoLogging: { ignore: (req) => req.url === '/v1/health' },
       },
     }),
     MetricsModule,

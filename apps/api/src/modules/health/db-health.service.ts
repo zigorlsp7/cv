@@ -5,8 +5,11 @@ import { DataSource } from 'typeorm';
 export class DbHealthService {
   constructor(private readonly dataSource: DataSource) {}
 
-  async ping(): Promise<'ok'> {
-    await this.dataSource.query('SELECT 1');
-    return 'ok';
+  async ping(): Promise<{ ok: boolean; latencyMs: number }> {
+    const start = Date.now();
+    await this.dataSource.query('select 1');
+    const latencyMs = Date.now() - start;
+
+    return { ok: true, latencyMs };
   }
 }

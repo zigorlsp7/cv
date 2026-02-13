@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import { httpMetricsMiddleware } from './modules/metrics/http-metrics.middleware';
 import { HttpExceptionFilter } from './observability/http-exception.filter';
 import './observability/tracing';
+import { requestIdMiddleware } from './common/http/request-id.middleware';
+import { WrapResponseInterceptor } from './common/http/wrap-response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,6 +33,10 @@ async function bootstrap() {
 
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+  app.use(requestIdMiddleware);
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new WrapResponseInterceptor());
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(','),
