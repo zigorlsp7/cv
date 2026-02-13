@@ -1,9 +1,9 @@
 import {
-    ArgumentsHost,
-    Catch,
-    ExceptionFilter,
-    HttpException,
-    HttpStatus,
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { REQUEST_ID_HEADER } from './request-id.middleware';

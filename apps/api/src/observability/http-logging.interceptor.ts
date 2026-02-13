@@ -1,9 +1,9 @@
 import {
-    CallHandler,
-    ExecutionContext,
-    Injectable,
-    Logger,
-    NestInterceptor,
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Observable, tap } from 'rxjs';

@@ -50,6 +50,7 @@ services:
       DB_USER: app
       DB_PASSWORD: app
       DB_NAME: cv
+      CORS_ORIGINS: http://localhost:3001,http://web:3001
       OTEL_SERVICE_NAME: cv-api
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
@@ -85,6 +86,7 @@ services:
       DB_USER: app
       DB_PASSWORD: app
       DB_NAME: cv_test
+      CORS_ORIGINS: http://localhost:3001
       OTEL_SERVICE_NAME: cv-api-test
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf

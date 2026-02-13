@@ -1,15 +1,16 @@
 import { DataSourceOptions } from 'typeorm';
+import { config } from './app.config';
 import { Dummy } from '../modules/infrastructure/dummy.entity';
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = config.nodeEnv === 'production';
 
 export const typeOrmConfig: DataSourceOptions = {
   type: 'postgres',
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 5432),
-  username: process.env.DB_USER ?? 'app',
-  password: process.env.DB_PASSWORD ?? 'app',
-  database: process.env.DB_NAME ?? 'cv',
+  host: config.db.host,
+  port: config.db.port,
+  username: config.db.user,
+  password: config.db.password,
+  database: config.db.name,
 
   synchronize: false,
 

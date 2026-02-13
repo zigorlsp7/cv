@@ -1,9 +1,3 @@
-import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { config } from '../src/config/app.config';
 
-dotenv.config({
-  path:
-    process.env.NODE_ENV === 'test'
-      ? path.resolve(__dirname, '..', '.env.test') // apps/api/.env.test
-      : path.resolve(__dirname, '..', '.env'),
-});
+void config;

@@ -2,23 +2,58 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { configureApp } from '../src/bootstrap/app-bootstrap';
+import { config } from '../src/config/app.config';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
+  jest.setTimeout(30_000);
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    configureApp(app, config);
     await app.init();
+  });
+
+  afterAll(async () => {
+    if (app) {
+      await app.close();
+    }
   });
 
   it('/ (GET)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect('Hello World!');
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data).toBe('Hello World!');
+        expect(typeof body.requestId).toBe('string');
+      });
+  });
+
+  it('/v1/health/live (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/v1/health/live')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data?.status).toBe('ok');
+      });
+  });
+
+  it('/v1/health/ready (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/v1/health/ready')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data?.status).toBe('ok');
+        expect(body.data?.db?.ok).toBe(true);
+      });
   });
 });

@@ -15,3 +15,16 @@ export class HealthDto {
   @ApiProperty({ type: DbHealthDto })
   db!: DbHealthDto;
 }
+
+export class LivenessDto {
+  @ApiProperty({ example: 'ok' })
+  status!: 'ok';
+}
+
+export class ReadinessDto {
+  @ApiProperty({ example: 'ok' })
+  status!: 'ok';
+
+  @ApiProperty({ type: DbHealthDto })
+  db!: DbHealthDto;
+}

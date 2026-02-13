@@ -1,4 +1,5 @@
 import { DataSource } from 'typeorm';
+import { config } from '../src/config/app.config';
 
 describe('integration: postgres connectivity', () => {
   let ds: DataSource;
@@ -6,11 +7,11 @@ describe('integration: postgres connectivity', () => {
   beforeAll(async () => {
     ds = new DataSource({
       type: 'postgres',
-      host: process.env.DB_HOST ?? 'localhost',
-      port: Number(process.env.DB_PORT ?? 5432),
-      username: process.env.DB_USER ?? 'app',
-      password: process.env.DB_PASSWORD ?? 'app',
-      database: process.env.DB_NAME ?? 'cv',
+      host: config.db.host,
+      port: config.db.port,
+      username: config.db.user,
+      password: config.db.password,
+      database: config.db.name,
     });
     await ds.initialize();
   });

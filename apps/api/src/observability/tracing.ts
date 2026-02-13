@@ -4,10 +4,10 @@ import { TypeormInstrumentation } from '@opentelemetry/instrumentation-typeorm';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { config } from '../config/app.config';
 
-const serviceName = process.env.OTEL_SERVICE_NAME ?? 'cv-api';
-const endpoint =
-  process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318';
+const serviceName = config.otel.serviceName;
+const endpoint = config.otel.endpoint;
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
@@ -26,13 +26,20 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
+let shutdownPromise: Promise<void> | undefined;
+
 async function shutdown() {
-  try {
-    await sdk.shutdown();
-  } finally {
-    process.exit(0);
+  if (shutdownPromise) {
+    return shutdownPromise;
   }
+
+  shutdownPromise = sdk.shutdown().catch(() => undefined);
+  return shutdownPromise;
 }
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.once('SIGTERM', () => {
+  void shutdown();
+});
+process.once('SIGINT', () => {
+  void shutdown();
+});
