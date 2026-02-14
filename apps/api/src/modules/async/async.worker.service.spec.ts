@@ -54,4 +54,24 @@ describe('AsyncWorkerService', () => {
 
     expect(handler).not.toHaveBeenCalled();
   });
+
+  it('handles concurrent processing signal when insert returns false', async () => {
+    const { service, idempotency } = buildService({
+      recordProcessed: jest.fn().mockResolvedValue(false),
+    });
+    const handler = jest.fn().mockResolvedValue(undefined);
+
+    await service.handleMessage(
+      {
+        id: 'msg-3',
+        topic: 'test.topic',
+        occurredAt: new Date().toISOString(),
+        payload: {},
+      },
+      handler,
+    );
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(idempotency.recordProcessed).toHaveBeenCalledTimes(1);
+  });
 });

@@ -60,4 +60,34 @@ describe('OutboxService', () => {
       }),
     );
   });
+
+  it('claims pending events with default limit', async () => {
+    const repo = buildRepoMock();
+    const service = new OutboxService(repo);
+
+    await service.claimPending();
+
+    expect(repo.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'pending' }),
+        take: 50,
+      }),
+    );
+  });
+
+  it('marks failed events as terminal when retryAt is omitted', async () => {
+    const repo = buildRepoMock();
+    const service = new OutboxService(repo);
+
+    await service.markFailed('evt-1', 'fatal error');
+
+    expect(repo.update).toHaveBeenCalledWith(
+      { id: 'evt-1' },
+      expect.objectContaining({
+        status: 'failed',
+        attempts: 1,
+        lastError: 'fatal error',
+      }),
+    );
+  });
 });

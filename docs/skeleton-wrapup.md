@@ -359,17 +359,17 @@ Current state:
 - Contract drift gate in CI
 - Supply-chain security gates (audit, Trivy, SBOM, gitleaks)
 - Alert rules + runbooks + Alertmanager wiring
+- Forced alert delivery validated end-to-end to real email channel
 - Outbox/idempotency persistence and tests
 - Backup/restore drill automation
 - Feature flags and RUM ingest path
+- Coverage gate enforced in CI (`@cv/api` global: 80% statements/branches/functions/lines)
 
 ## 5.2 Remaining Gaps for Full Production Readiness
 
 - Terraform: complete ECS task/service, ALB, Route53/ACM wiring and validate with real `terraform apply`
 - Deployment: execute and prove one full successful deployment in real AWS environment
 - Rollback: document and rehearse concrete rollback runbook with evidence
-- Alert delivery: run at least one forced-alert end-to-end check in your real notification channel and keep proof
-- Coverage policy: thresholds are still intentionally low and should be increased as domain logic grows
 - Dedicated error-tracking component (Sentry-compatible export + dedicated UI) is deferred and still missing
 
 ## 5.3 Cleanup Status
@@ -587,4 +587,4 @@ You can start adding business logic/UI once:
 3. One forced alert is delivered end-to-end to your real channel.
 4. Contract drift gate is proven by intentional API change test.
 5. Backup/restore drill evidence is captured and repeatable.
-6. Team agrees on coverage threshold ramp-up policy.
+6. Coverage gate remains green on PRs (`npm run test:cov -w @cv/api`).

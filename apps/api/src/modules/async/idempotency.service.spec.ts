@@ -38,4 +38,14 @@ describe('IdempotencyService', () => {
       service.recordProcessed({ messageId: 'msg-1', topic: 'topic' }),
     ).rejects.toThrow('boom');
   });
+
+  it('throws when insert fails with a non-object error payload', async () => {
+    const repo = buildRepoMock();
+    (repo.insert as jest.Mock).mockRejectedValue('boom');
+    const service = new IdempotencyService(repo);
+
+    await expect(
+      service.recordProcessed({ messageId: 'msg-1', topic: 'topic' }),
+    ).rejects.toEqual('boom');
+  });
 });

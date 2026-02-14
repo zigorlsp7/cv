@@ -90,14 +90,28 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.ts",
+      "!**/*.spec.ts",
+      "!main.ts",
+      "!app.module.ts",
+      "!typeorm.datasource.ts",
+      "!bootstrap/**",
+      "!config/**",
+      "!migrations/**",
+      "!common/http/**",
+      "!modules/metrics/**",
+      "!modules/health/**",
+      "!observability/**",
+      "!**/*.module.ts",
+      "!**/*.entity.ts",
+      "!**/*.dto.ts"
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 8,
-        "functions": 18,
-        "lines": 16,
-        "statements": 17
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
       }
     },
     "coverageDirectory": "../coverage",
