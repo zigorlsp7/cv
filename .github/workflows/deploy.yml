@@ -63,6 +63,24 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
 
+      - name: Run DB migrations (optional one-off task)
+        if: ${{ vars.ECS_MIGRATION_TASK_DEF != '' && vars.ECS_MIGRATION_NETWORK_CONFIG_JSON != '' }}
+        run: |
+          task_arn="$(aws ecs run-task \
+            --cluster "${{ vars.ECS_CLUSTER_NAME }}" \
+            --launch-type FARGATE \
+            --task-definition "${{ vars.ECS_MIGRATION_TASK_DEF }}" \
+            --network-configuration '${{ vars.ECS_MIGRATION_NETWORK_CONFIG_JSON }}' \
+            --query 'tasks[0].taskArn' \
+            --output text)"
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER_NAME }}" --tasks "$task_arn"
+          exit_code="$(aws ecs describe-tasks \
+            --cluster "${{ vars.ECS_CLUSTER_NAME }}" \
+            --tasks "$task_arn" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)"
+          test "$exit_code" = "0"
+
       - name: Trigger new deployment (API service)
         run: |
           aws ecs update-service \

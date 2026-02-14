@@ -1,6 +1,8 @@
 import { DataSourceOptions } from 'typeorm';
 import { config } from './app.config';
 import { Dummy } from '../modules/infrastructure/dummy.entity';
+import { OutboxEvent } from '../modules/async/entities/outbox-event.entity';
+import { ProcessedMessage } from '../modules/async/entities/processed-message.entity';
 
 const isProd = config.nodeEnv === 'production';
 
@@ -15,7 +17,7 @@ export const typeOrmConfig: DataSourceOptions = {
   synchronize: false,
 
   logging: !isProd,
-  entities: [Dummy],
+  entities: [Dummy, ProcessedMessage, OutboxEvent],
 
   migrations: isProd ? ['dist/migrations/*.js'] : [],
 };

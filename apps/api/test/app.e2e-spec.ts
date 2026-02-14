@@ -1,12 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { configureApp } from '../src/bootstrap/app-bootstrap';
 import { config } from '../src/config/app.config';
+import { truncateTestTables } from './support/db-cleanup';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   jest.setTimeout(30_000);
 
   beforeAll(async () => {
@@ -17,6 +20,11 @@ describe('AppController (e2e)', () => {
     app = moduleFixture.createNestApplication();
     configureApp(app, config);
     await app.init();
+    dataSource = app.get(DataSource);
+  });
+
+  beforeEach(async () => {
+    await truncateTestTables(dataSource);
   });
 
   afterAll(async () => {

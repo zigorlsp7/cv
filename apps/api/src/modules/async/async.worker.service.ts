@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { IdempotencyService } from './idempotency.service';
 
 export type AsyncEnvelope<TPayload = unknown> = {
   id: string;
@@ -9,23 +10,35 @@ export type AsyncEnvelope<TPayload = unknown> = {
 };
 
 /**
- * Skeleton worker contract for future Kafka/SQS integration.
- * It centralizes idempotent message handling semantics before wiring a broker.
+ * Transport-agnostic worker contract (Kafka/SQS integration will call this).
+ * It enforces idempotency semantics at the handler boundary.
  */
 @Injectable()
 export class AsyncWorkerService {
   private readonly logger = new Logger(AsyncWorkerService.name);
 
-  async handleMessage(message: AsyncEnvelope): Promise<void> {
-    // TODO(P2): replace with a real idempotency store lookup.
-    const alreadyProcessed = false;
+  constructor(private readonly idempotency: IdempotencyService) {}
+
+  async handleMessage(
+    message: AsyncEnvelope,
+    handler: (message: AsyncEnvelope) => Promise<void>,
+  ): Promise<void> {
+    const alreadyProcessed = await this.idempotency.wasProcessed(message.id);
     if (alreadyProcessed) {
       this.logger.debug(`skip duplicate message id=${message.id}`);
       return;
     }
 
     this.logger.log(`processing topic=${message.topic} id=${message.id}`);
-    // TODO(P2): apply domain handler by topic.
-    // TODO(P2): mark message as processed in idempotency store.
+    await handler(message);
+
+    const inserted = await this.idempotency.recordProcessed({
+      messageId: message.id,
+      topic: message.topic,
+      key: message.key,
+    });
+    if (!inserted) {
+      this.logger.debug(`message concurrently processed id=${message.id}`);
+    }
   }
 }

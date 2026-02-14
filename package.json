@@ -10,7 +10,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "audit": "npm audit --audit-level=high",
-    "contract:gen:web": "./scripts/generate-openapi-types.sh"
+    "contract:gen:web": "node ./scripts/generate-api-contract.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",

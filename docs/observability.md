@@ -26,8 +26,27 @@ Access points:
 - Recording rules: `docker/prometheus.rules.yml`
 - Alert rules: `docker/prometheus.alerts.yml`
 - Alertmanager routes/receivers: `docker/alertmanager.yml`
+- Production channels template: `docker/alertmanager.prod.yml`
 
 Prometheus loads both rule files and sends firing alerts to Alertmanager.
+
+## Real notification channels
+
+Local compose defaults to `docker/alertmanager.yml` (local webhook receiver).
+
+For real channels (Slack/PagerDuty/Email):
+
+1. Copy `docker/alertmanager.prod.yml` to your deployment config path.
+2. Set required env vars:
+   - `SLACK_WEBHOOK_URL`
+   - `SLACK_CHANNEL`
+   - `PAGERDUTY_ROUTING_KEY`
+   - `SMTP_SMARTHOST`
+   - `SMTP_FROM`
+   - `ALERT_EMAIL_TO`
+3. Render the config with env substitution before starting Alertmanager, for example:
+   - `envsubst < docker/alertmanager.prod.yml > /tmp/alertmanager.rendered.yml`
+   - Start Alertmanager with `--config.file=/tmp/alertmanager.rendered.yml`.
 
 ## Validation flow
 
@@ -39,6 +58,10 @@ Prometheus loads both rule files and sends firing alerts to Alertmanager.
    - `cv_api:http_rps:rate30s`
    - `cv_api:http_error_ratio:rate5m`
    - `cv_api:http_p95_seconds:5m`
+5. Force-test one alert delivery path:
+   - In Prometheus expression browser, run:
+     - `ALERTS{alertname="CvApiHighLatencyP95"}`
+   - Then temporarily lower threshold in `docker/prometheus.alerts.yml` and reload Prometheus.
 
 ## Runbooks
 

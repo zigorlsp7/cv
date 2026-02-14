@@ -9,12 +9,14 @@ import { config } from './config/app.config';
 import { typeOrmConfig } from './config/typeorm.config';
 import { HealthModule } from './modules/health/health.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
+import { AsyncModule } from './modules/async/async.module';
 import { getOtelIds } from './observability/otel-log-context';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeOrmConfig),
     HealthModule,
+    AsyncModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: config.logLevel,

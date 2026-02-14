@@ -1,30 +1,33 @@
-# Async Messaging Skeleton
+# Async Messaging
 
-This repo now includes a worker skeleton at:
+This repo now includes persistence-backed async primitives:
 
 - `apps/api/src/modules/async/async.worker.service.ts`
-- `apps/api/src/modules/async/async.module.ts`
+- `apps/api/src/modules/async/idempotency.service.ts`
+- `apps/api/src/modules/async/outbox.service.ts`
+- `apps/api/src/modules/async/entities/processed-message.entity.ts`
+- `apps/api/src/modules/async/entities/outbox-event.entity.ts`
+- Migration: `apps/api/src/migrations/1771060000000-AsyncOutboxAndIdempotency.ts`
 
-It is intentionally transport-agnostic so we can wire Kafka or SQS later without changing core processing semantics.
+The transport remains intentionally decoupled so Kafka/SQS can be wired later without changing core semantics.
 
 ## Idempotency strategy
 
 Every consumed message must carry a stable message ID (`envelope.id`).
 
-Recommended storage shape:
+Implemented storage shape:
 
 - Table: `processed_messages`
-- Columns:
-  - `message_id` (PK)
-  - `topic`
-  - `processed_at`
+- PK: `message_id`
+- Metadata: `topic`, `key`, `processed_at`
 
 Processing flow:
 
 1. Check if `message_id` exists.
 2. If yes, skip processing.
 3. If not, execute handler.
-4. Persist `message_id` in the same transaction boundary where possible.
+4. Persist `message_id`.
+5. Duplicate `message_id` insert is treated as already-processed.
 
 ## Outbox pattern strategy
 
@@ -35,17 +38,39 @@ For reliable publish-after-write:
 3. Publish to broker (Kafka/SQS).
 4. Mark row as `published` (or retry with backoff on failure).
 
-Recommended outbox table:
+Implemented outbox table (`outbox_events`):
 
-- `id` UUID PK
-- `aggregate_type` TEXT
-- `aggregate_id` TEXT
-- `event_type` TEXT
+- `id` VARCHAR(36) PK
+- `aggregate_type`
+- `aggregate_id`
+- `event_type`
 - `payload` JSONB
-- `status` TEXT (`pending|published|failed`)
-- `attempts` INT
-- `available_at` TIMESTAMPTZ
-- `created_at` TIMESTAMPTZ
+- `status` (`pending|published|failed`)
+- `attempts`
+- `available_at`
+- `created_at`
+- `published_at`
+- `last_error`
+- Index: `(status, available_at)`
+
+Service API:
+
+1. `enqueue(...)` inserts `pending` outbox rows.
+2. `claimPending(limit)` loads publish-ready rows.
+3. `markPublished(id)` marks success.
+4. `markFailed(id, error, retryAt?)` increments attempts and keeps retry semantics.
+
+## Test coverage
+
+Integration coverage for persistence semantics:
+
+- `apps/api/test/async.int-spec.ts`
+
+Factory and fixture support:
+
+- `apps/api/test/support/test-data-source.ts`
+- `apps/api/test/support/db-cleanup.ts`
+- `apps/api/test/support/factories/*.ts`
 
 ## Broker choice notes
 

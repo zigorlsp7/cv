@@ -85,6 +85,20 @@ jobs:
       - name: E2E tests (api)
         run: DB_HOST=localhost DB_PORT=5433 DB_NAME=cv_test DB_USER=app DB_PASSWORD=app npm run test:e2e -w @cv/api -- --watchman=false --detectOpenHandles
 
+      - name: Export OpenAPI spec (api_test)
+        run: |
+          mkdir -p artifacts
+          docker compose -f docker/compose.yml --profile test exec -T api_test sh -lc 'wget -qO- http://localhost:3000/docs-json' > artifacts/openapi.test.json
+
+      - name: Regenerate web API contract
+        run: npm run contract:gen:web -- artifacts/openapi.test.json apps/web/src/lib/api/generated.ts
+
+      - name: Enforce API contract drift
+        run: git diff --exit-code -- apps/web/src/lib/api/generated.ts
+
+      - name: Backup/restore drill (test Postgres)
+        run: ./scripts/db-backup-restore-drill.sh
+
       - name: k6 smoke (test)
         run: docker compose -f docker/compose.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
 
@@ -176,12 +190,11 @@ jobs:
             artifacts/sbom-web.spdx.json
           if-no-files-found: error
 
-  web-smoke-optional:
-    name: Web Smoke (Optional Playwright)
+  web-smoke:
+    name: Web Smoke (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: quality
-    if: ${{ vars.ENABLE_PLAYWRIGHT_SMOKE == 'true' }}
 
     steps:
       - uses: actions/checkout@v6
