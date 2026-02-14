@@ -56,9 +56,18 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=8.24.2
+          mkdir -p artifacts
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
-          /tmp/gitleaks detect --source . --no-git --redact --config .gitleaks.toml
+          /tmp/gitleaks detect --source . --no-git --redact --config .gitleaks.toml --report-format json --report-path artifacts/gitleaks-report.json
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: artifacts/gitleaks-report.json
+          if-no-files-found: warn
 
   integration-e2e:
     name: Integration + E2E + k6
