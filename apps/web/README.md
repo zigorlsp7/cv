@@ -1,33 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Web App (Next.js)
 
-## Getting Started
+Frontend workspace for the CV platform template.
 
-First, run the development server:
+## Scripts
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- `npm run dev -w web` - Start Next.js dev server
+- `npm run build -w web` - Production build
+- `npm run start -w web` - Run built app
+- `npm run lint -w web` - Lint source files
+- `npm run typecheck -w web` - TypeScript type checking
+- `npm run test:smoke -w web` - Playwright smoke tests
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_API_BASE_URL` - API base URL used by server-side pages
+- `NEXT_PUBLIC_RUM_ENABLED` - Enable browser RUM emission (`true`/`false`)
+- `NEXT_PUBLIC_RUM_ENDPOINT` - Optional explicit RUM ingest URL (defaults to `${NEXT_PUBLIC_API_BASE_URL}/v1/rum/events` when not set)
+- `NEXT_PUBLIC_RELEASE` - Optional release tag attached to RUM events
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Quality Gates in CI
 
-## Learn More
+- Lint + typecheck + build
+- Playwright smoke (`/` and `/health`)
+- API contract drift gate (generated contract file must be up to date)
 
-To learn more about Next.js, take a look at the following resources:
+## Notes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- This workspace intentionally stays minimal until business UI starts.
+- RUM capture is designed as near-future instrumentation and can stay disabled while UI is still skeletal.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## Deploy on Vercel
 

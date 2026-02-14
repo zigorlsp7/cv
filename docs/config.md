@@ -50,6 +50,7 @@ System environment variables still take precedence over file values.
 | `OTEL_TRACES_EXPORTER` | no | `otlp` | Traces exporter setting |
 | `OTEL_METRICS_EXPORTER` | no | `none` | Metrics exporter setting |
 | `OTEL_LOGS_EXPORTER` | no | `none` | Logs exporter setting |
+| `FEATURE_FLAGS` | no | empty | Comma-separated feature flags (example: `swagger_docs=true,rum_ingest=true`) |
 
 ## Validation rules
 
@@ -58,6 +59,7 @@ System environment variables still take precedence over file values.
 - In `production`, `CORS_ORIGINS` must not be empty.
 - `HEADERS_TIMEOUT_MS` must be greater than `KEEP_ALIVE_TIMEOUT_MS`.
 - `TRUST_PROXY` must be one of the supported values listed above.
+- `FEATURE_FLAGS` must use `name=true|false` pairs.
 
 ## Trust proxy strategy (ALB/CloudFront)
 

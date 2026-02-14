@@ -7,6 +7,7 @@ This project includes a local observability stack in `docker/compose.yml`:
 - `Grafana` for dashboards
 - `Loki` + `Promtail` for logs
 - `Jaeger` + `OTEL Collector` for traces
+- Optional browser RUM ingest endpoint (`/v1/rum/events`)
 
 ## Bring up the stack
 
@@ -83,3 +84,14 @@ That renders `docker/alertmanager.yml` from `docker/alertmanager.email.tpl.yml` 
 - `docs/runbooks/api-high-error-rate.md`
 - `docs/runbooks/api-high-latency.md`
 - `docs/runbooks/request-debugging.md`
+
+## Runtime feature flags
+
+Runtime feature flags are configured in API env with:
+
+- `FEATURE_FLAGS=swagger_docs=true,rum_ingest=true`
+
+Current built-in flags:
+
+- `swagger_docs` (controls OpenAPI UI/docs-json exposure)
+- `rum_ingest` (controls `/v1/rum/events` availability)
