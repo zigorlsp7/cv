@@ -235,7 +235,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browser
-        run: npx --yes playwright install --with-deps chromium
+        run: npm exec -w web playwright install --with-deps chromium
 
       - name: Compose up (postgres + api + web)
         run: docker compose -f docker/compose.yml up -d --build postgres api web
