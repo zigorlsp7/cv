@@ -121,7 +121,9 @@ services:
       - api
     volumes:
       - ../apps/web:/workspace/apps/web
-      - /workspace/node_modules
+      - ../package.json:/workspace/package.json
+      - ../package-lock.json:/workspace/package-lock.json
+      - ../node_modules:/workspace/node_modules
     logging:
       driver: "json-file"
       options:
