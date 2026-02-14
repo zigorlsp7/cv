@@ -34,7 +34,20 @@ Prometheus loads both rule files and sends firing alerts to Alertmanager.
 
 Local compose defaults to `docker/alertmanager.yml` (local webhook receiver).
 
-For real channels (Slack/PagerDuty/Email):
+### Quick setup: email to Gmail
+
+This repo includes a ready script for email-only alerting:
+
+1. Run:
+   - `./scripts/enable-email-alerts.sh`
+2. If prompted, edit `.env.alerts` and set:
+   - `SMTP_AUTH_PASSWORD` to your Gmail App Password
+3. Re-run:
+   - `./scripts/enable-email-alerts.sh`
+
+That renders `docker/alertmanager.yml` from `docker/alertmanager.email.tpl.yml` and restarts Alertmanager.
+
+### Full setup: Slack/PagerDuty/Email
 
 1. Copy `docker/alertmanager.prod.yml` to your deployment config path.
 2. Set required env vars:
@@ -43,6 +56,8 @@ For real channels (Slack/PagerDuty/Email):
    - `PAGERDUTY_ROUTING_KEY`
    - `SMTP_SMARTHOST`
    - `SMTP_FROM`
+   - `SMTP_AUTH_USERNAME`
+   - `SMTP_AUTH_PASSWORD`
    - `ALERT_EMAIL_TO`
 3. Render the config with env substitution before starting Alertmanager, for example:
    - `envsubst < docker/alertmanager.prod.yml > /tmp/alertmanager.rendered.yml`
