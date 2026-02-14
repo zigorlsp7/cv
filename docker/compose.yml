@@ -123,7 +123,8 @@ services:
       - ../apps/web:/workspace/apps/web
       - ../package.json:/workspace/package.json
       - ../package-lock.json:/workspace/package-lock.json
-      - ../node_modules:/workspace/node_modules
+      - /workspace/node_modules
+      - /workspace/apps/web/node_modules
     logging:
       driver: "json-file"
       options:
