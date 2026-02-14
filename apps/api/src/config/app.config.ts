@@ -49,6 +49,7 @@ export type AppConfig = {
     metricsExporter: string;
     logsExporter: string;
   };
+  features: Record<string, boolean>;
 };
 
 const TRUE_VALUES = new Set(['true', '1', 'yes']);
@@ -72,6 +73,36 @@ function parseList(input: string): string[] {
     .split(',')
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+}
+
+function parseFeatureFlagAssignments(input: string): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  if (!input.trim()) return out;
+
+  const entries = parseList(input);
+  for (const entry of entries) {
+    const [rawName, rawValue] = entry.split('=');
+    const name = rawName?.trim();
+    const value = rawValue?.trim();
+
+    if (!name) {
+      throw new Error(`Invalid feature flag entry: "${entry}"`);
+    }
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(name)) {
+      throw new Error(
+        `Invalid feature flag name "${name}". Use letters/numbers/_/- only`,
+      );
+    }
+    if (value === undefined) {
+      throw new Error(
+        `Feature flag "${name}" must specify boolean value (example: ${name}=true)`,
+      );
+    }
+
+    out[name] = parseBooleanEnv(value, false);
+  }
+
+  return out;
 }
 
 function isValidHttpOrigin(origin: string): boolean {
@@ -175,6 +206,8 @@ const envSchema = z
     OTEL_TRACES_EXPORTER: z.string().default('otlp'),
     OTEL_METRICS_EXPORTER: z.string().default('none'),
     OTEL_LOGS_EXPORTER: z.string().default('none'),
+
+    FEATURE_FLAGS: z.string().default(''),
   })
   .superRefine((data, ctx) => {
     const origins = parseList(data.CORS_ORIGINS);
@@ -233,6 +266,20 @@ const envSchema = z
         message: error instanceof Error ? error.message : 'Invalid TRUST_PROXY',
       });
     }
+
+    try {
+      parseFeatureFlagAssignments(data.FEATURE_FLAGS);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['FEATURE_FLAGS'],
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Invalid FEATURE_FLAGS format',
+      });
+    }
+
   });
 
 let cachedConfig: AppConfig | undefined;
@@ -267,6 +314,11 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
   const methods = parseList(raw.CORS_METHODS);
   const allowedHeaders = parseList(raw.CORS_ALLOWED_HEADERS);
   const exposedHeaders = parseList(raw.CORS_EXPOSED_HEADERS);
+  const defaultFeatures: Record<string, boolean> = {
+    swagger_docs: true,
+    rum_ingest: true,
+  };
+  const parsedFeatureFlags = parseFeatureFlagAssignments(raw.FEATURE_FLAGS);
 
   return {
     nodeEnv: raw.NODE_ENV,
@@ -305,6 +357,10 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
       tracesExporter: raw.OTEL_TRACES_EXPORTER,
       metricsExporter: raw.OTEL_METRICS_EXPORTER,
       logsExporter: raw.OTEL_LOGS_EXPORTER,
+    },
+    features: {
+      ...defaultFeatures,
+      ...parsedFeatureFlags,
     },
   };
 }

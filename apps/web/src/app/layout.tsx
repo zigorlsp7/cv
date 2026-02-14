@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { RumObserver } from "@/components/rum-observer";
 
 export const metadata: Metadata = {
   title: "CV Platform",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <RumObserver />
+        {children}
+      </body>
     </html>
   );
 }

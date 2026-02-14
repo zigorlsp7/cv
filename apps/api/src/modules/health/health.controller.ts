@@ -62,4 +62,5 @@ export class HealthController {
   ok(): Promise<ReadinessDto> {
     return this.ready();
   }
+
 }

@@ -57,6 +57,7 @@ services:
       OTEL_TRACES_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
+      FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
     ports:
       - "3000:3000"
     depends_on:
@@ -93,6 +94,7 @@ services:
       OTEL_TRACES_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
+      FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
     ports:
       - "3003:3000"
     depends_on:
@@ -115,6 +117,8 @@ services:
       target: dev
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://api:3000
+      NEXT_PUBLIC_RUM_ENABLED: "false"
+      NEXT_PUBLIC_RUM_ENDPOINT: http://localhost:3000/v1/rum/events
     ports:
       - "3001:3001"
     depends_on:

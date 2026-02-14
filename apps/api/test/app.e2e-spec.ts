@@ -64,4 +64,28 @@ describe('AppController (e2e)', () => {
         expect(body.data?.db?.ok).toBe(true);
       });
   });
+
+  it('/v1/feature-flags (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/v1/feature-flags')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data?.swagger_docs).toBeDefined();
+        expect(body.data?.rum_ingest).toBeDefined();
+      });
+  });
+
+  it('/v1/rum/events (POST)', () => {
+    return request(app.getHttpServer())
+      .post('/v1/rum/events')
+      .send({
+        events: [{ type: 'navigation', path: '/', release: 'test' }],
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data?.accepted).toBe(1);
+      });
+  });
 });

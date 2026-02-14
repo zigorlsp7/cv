@@ -11,6 +11,7 @@ import { HttpExceptionFilter } from '../common/http/http-exception.filter';
 import { requestIdMiddleware } from '../common/http/request-id.middleware';
 import { httpMetricsMiddleware } from '../modules/metrics/http-metrics.middleware';
 import { WrapResponseInterceptor } from '../common/http/wrap-response.interceptor';
+import { HttpLoggingInterceptor } from '../observability/http-logging.interceptor';
 
 type BootstrapOptions = {
   withSwagger?: boolean;
@@ -61,7 +62,10 @@ export function configureApp(
   });
 
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new WrapResponseInterceptor());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new WrapResponseInterceptor(),
+  );
 
   app.enableCors({
     origin: config.cors.origins,

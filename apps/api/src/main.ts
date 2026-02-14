@@ -6,7 +6,9 @@ import './observability/tracing';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  configureApp(app, config, { withSwagger: true });
+  configureApp(app, config, {
+    withSwagger: config.features.swagger_docs,
+  });
   await app.listen(config.port);
 }
 bootstrap();
