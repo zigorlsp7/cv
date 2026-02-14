@@ -42,6 +42,23 @@ jobs:
           path: apps/api/coverage
           if-no-files-found: warn
 
+  secrets-scan:
+    name: Secrets Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | sh -s -- -b /usr/local/bin v8.24.2
+
+      - name: Run gitleaks
+        run: gitleaks detect --source . --no-git --redact --config .gitleaks.toml
+
   integration-e2e:
     name: Integration + E2E + k6
     runs-on: ubuntu-latest
