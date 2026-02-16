@@ -9,7 +9,7 @@ type EnqueueOutboxEventInput = {
   aggregateId: string;
   eventType: string;
   payload: Record<string, unknown>;
-  availableAt?: Date;
+  availableAt: Date;
 };
 
 @Injectable()
@@ -26,7 +26,7 @@ export class OutboxService {
       aggregateId: input.aggregateId,
       eventType: input.eventType,
       payload: input.payload,
-      availableAt: input.availableAt ?? new Date(),
+      availableAt: input.availableAt,
       status: 'pending',
       attempts: 0,
       publishedAt: null,
@@ -62,15 +62,15 @@ export class OutboxService {
   async markFailed(id: string, error: string, retryAt?: Date): Promise<void> {
     const event = await this.outboxRepo.findOneByOrFail({ id });
     const nextStatus: OutboxStatus = retryAt ? 'pending' : 'failed';
+    const updateData: Partial<OutboxEvent> = {
+      status: nextStatus,
+      attempts: event.attempts + 1,
+      lastError: error,
+    };
+    if (retryAt) {
+      updateData.availableAt = retryAt;
+    }
 
-    await this.outboxRepo.update(
-      { id },
-      {
-        status: nextStatus,
-        attempts: event.attempts + 1,
-        availableAt: retryAt ?? event.availableAt,
-        lastError: error,
-      },
-    );
+    await this.outboxRepo.update({ id }, updateData);
   }
 }

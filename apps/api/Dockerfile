@@ -6,6 +6,7 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
+COPY scripts/prepare-husky.mjs scripts/prepare-husky.mjs
 RUN npm ci -w @cv/api
 
 # ---- deps (production-only) ----
@@ -13,6 +14,7 @@ FROM base AS prod-deps
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
+COPY scripts/prepare-husky.mjs scripts/prepare-husky.mjs
 RUN npm ci -w @cv/api --omit=dev
 
 # ---- dev ----
@@ -50,8 +52,7 @@ RUN rm -rf \
   /usr/local/bin/npm \
   /usr/local/bin/npx \
   /usr/bin/npm \
-  /usr/bin/npx \
-  || true
+  /usr/bin/npx
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]

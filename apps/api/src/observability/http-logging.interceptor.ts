@@ -20,14 +20,17 @@ export class HttpLoggingInterceptor implements NestInterceptor {
       tap({
         next: () => {
           const ms = Date.now() - start;
+          const requestId = String((req as any).requestId);
           this.logger.log(
-            `${req.method} ${req.originalUrl} ${ms}ms requestId=${(req as any).requestId ?? '-'}`,
+            `${req.method} ${req.originalUrl} ${ms}ms requestId=${requestId}`,
           );
         },
         error: (err) => {
           const ms = Date.now() - start;
+          const requestId = String((req as any).requestId);
+          const errorMessage = err instanceof Error ? err.message : String(err);
           this.logger.error(
-            `${req.method} ${req.originalUrl} ${ms}ms requestId=${(req as any).requestId ?? '-'} err=${err?.message ?? err}`,
+            `${req.method} ${req.originalUrl} ${ms}ms requestId=${requestId} err=${errorMessage}`,
           );
         },
       }),

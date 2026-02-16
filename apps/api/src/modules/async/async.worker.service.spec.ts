@@ -23,6 +23,7 @@ describe('AsyncWorkerService', () => {
       {
         id: 'msg-1',
         topic: 'test.topic',
+        key: null,
         occurredAt: new Date().toISOString(),
         payload: { hello: 'world' },
       },
@@ -46,6 +47,7 @@ describe('AsyncWorkerService', () => {
       {
         id: 'msg-2',
         topic: 'test.topic',
+        key: null,
         occurredAt: new Date().toISOString(),
         payload: {},
       },
@@ -65,6 +67,7 @@ describe('AsyncWorkerService', () => {
       {
         id: 'msg-3',
         topic: 'test.topic',
+        key: null,
         occurredAt: new Date().toISOString(),
         payload: {},
       },

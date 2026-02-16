@@ -16,10 +16,17 @@ export class WrapResponseInterceptor implements NestInterceptor {
     const req = http.getRequest<Request>();
     const res = http.getResponse<Response>();
 
+    const fromHeader = res.getHeader(REQUEST_ID_HEADER);
+    const fromReq = (req as any).requestId;
     const requestId =
-      (res.getHeader(REQUEST_ID_HEADER) as string) ||
-      ((req as any).requestId as string) ||
-      'unknown';
+      typeof fromHeader === 'string' && fromHeader
+        ? fromHeader
+        : typeof fromReq === 'string' && fromReq
+          ? fromReq
+          : null;
+    if (!requestId) {
+      throw new Error('Request id is required');
+    }
 
     return next.handle().pipe(
       map((data) => ({

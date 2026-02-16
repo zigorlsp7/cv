@@ -1,7 +1,7 @@
 import { RumService } from './rum.service';
 
 describe('RumService', () => {
-  it('logs one line per ingested event and fills missing fields with placeholders', () => {
+  it('logs one line per ingested event without injecting placeholder values', () => {
     const service = new RumService();
     const loggerSpy = jest
       .spyOn(
@@ -30,7 +30,7 @@ describe('RumService', () => {
     expect(loggerSpy).toHaveBeenCalledTimes(2);
     expect(loggerSpy.mock.calls[0][0]).toContain('rum type=web-vital path=/health metric=CLS');
     expect(loggerSpy.mock.calls[1][0]).toContain(
-      'rum type=navigation path=/dashboard metric=- value=- requestId=- release=-',
+      'rum type=navigation path=/dashboard metric=undefined value=undefined requestId=undefined release=undefined',
     );
   });
 });

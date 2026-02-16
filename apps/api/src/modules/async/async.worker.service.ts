@@ -4,7 +4,7 @@ import { IdempotencyService } from './idempotency.service';
 export type AsyncEnvelope<TPayload = unknown> = {
   id: string;
   topic: string;
-  key?: string;
+  key: string | null;
   occurredAt: string;
   payload: TPayload;
 };

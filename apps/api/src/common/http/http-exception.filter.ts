@@ -13,7 +13,10 @@ function getRequestId(req: Request, res: Response): string {
   const fromHeader = res.getHeader(REQUEST_ID_HEADER);
   if (typeof fromHeader === 'string' && fromHeader) return fromHeader;
   const anyReq = req as any;
-  return anyReq.requestId ?? 'unknown';
+  if (typeof anyReq.requestId === 'string' && anyReq.requestId) {
+    return anyReq.requestId;
+  }
+  throw new Error('Request id is required');
 }
 
 @Catch()
@@ -40,7 +43,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = response;
       } else if (typeof response === 'object' && response) {
         const r = response as any;
-        message = r.message ?? message;
+        if (r.message !== undefined) {
+          message = r.message;
+        }
         details = r;
 
         // If ValidationPipe throws, message is often array of strings

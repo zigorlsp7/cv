@@ -24,7 +24,7 @@ describe('IdempotencyService', () => {
     const service = new IdempotencyService(repo);
 
     await expect(
-      service.recordProcessed({ messageId: 'msg-1', topic: 'topic' }),
+      service.recordProcessed({ messageId: 'msg-1', topic: 'topic', key: null }),
     ).resolves.toBe(false);
   });
 
@@ -35,7 +35,7 @@ describe('IdempotencyService', () => {
     const service = new IdempotencyService(repo);
 
     await expect(
-      service.recordProcessed({ messageId: 'msg-1', topic: 'topic' }),
+      service.recordProcessed({ messageId: 'msg-1', topic: 'topic', key: null }),
     ).rejects.toThrow('boom');
   });
 
@@ -45,7 +45,7 @@ describe('IdempotencyService', () => {
     const service = new IdempotencyService(repo);
 
     await expect(
-      service.recordProcessed({ messageId: 'msg-1', topic: 'topic' }),
+      service.recordProcessed({ messageId: 'msg-1', topic: 'topic', key: null }),
     ).rejects.toEqual('boom');
   });
 });

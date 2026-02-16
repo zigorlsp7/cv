@@ -12,6 +12,8 @@ import { MetricsModule } from './modules/metrics/metrics.module';
 import { AsyncModule } from './modules/async/async.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { RumModule } from './modules/rum/rum.module';
+import { ArchitectureModule } from './modules/architecture/architecture.module';
+import { CvModule } from './modules/cv/cv.module';
 import { getOtelIds } from './observability/otel-log-context';
 
 @Module({
@@ -21,6 +23,8 @@ import { getOtelIds } from './observability/otel-log-context';
     AsyncModule,
     FeatureFlagsModule,
     RumModule,
+    ArchitectureModule,
+    CvModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: config.logLevel,

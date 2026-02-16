@@ -13,9 +13,9 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
-    "test": "jest",
+    "test": "NODE_ENV=test jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
+    "test:cov": "NODE_ENV=test jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test jest --config ./test/jest-e2e.json",
     "test:int": "NODE_ENV=test jest --config ./test/jest-int.json",
@@ -89,6 +89,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "setupFiles": [
+      "<rootDir>/../test/jest.env.ts"
+    ],
     "collectCoverageFrom": [
       "**/*.ts",
       "!**/*.spec.ts",

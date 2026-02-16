@@ -88,4 +88,81 @@ describe('AppController (e2e)', () => {
         expect(body.data?.accepted).toBe(1);
       });
   });
+
+  it('/v1/cv (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/v1/cv')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data?.fullName).toBeDefined();
+        expect(Array.isArray(body.data?.sections)).toBe(true);
+        expect(body.data?.sections).toHaveLength(6);
+      });
+  });
+
+  it('/v1/cv (PUT)', async () => {
+    const payload = {
+      fullName: 'Jane Doe',
+      role: 'Platform Engineer',
+      tagline: 'Builds reliable systems.',
+      chips: ['Location: Remote', 'Email: jane@example.com'],
+      sections: [
+        {
+          id: 'profile-summary',
+          title: 'Profile Summary',
+          summary: 'Short summary',
+          bullets: ['Strong backend ownership'],
+        },
+        {
+          id: 'experience-highlights',
+          title: 'Experience Highlights',
+          summary: 'Most relevant positions and achievements.',
+          bullets: ['Drove reliability and delivery improvements'],
+        },
+        {
+          id: 'skills',
+          title: 'Skills',
+          summary: 'Technical capabilities grouped by category.',
+          bullets: ['TypeScript, NestJS, PostgreSQL'],
+        },
+        {
+          id: 'projects',
+          title: 'Projects',
+          summary: 'Flagship projects that prove execution and ownership.',
+          bullets: ['Built and hardened a production-ready web skeleton'],
+        },
+        {
+          id: 'education',
+          title: 'Education',
+          summary: 'Formal education and certifications.',
+          bullets: ['Computer Science degree'],
+        },
+        {
+          id: 'languages',
+          title: 'Languages',
+          summary: 'Spoken languages and proficiency.',
+          bullets: ['English: Professional', 'Spanish: Native'],
+        },
+      ],
+    };
+
+    await request(app.getHttpServer())
+      .put('/v1/cv')
+      .send(payload)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.ok).toBe(true);
+        expect(body.data?.fullName).toBe(payload.fullName);
+        expect(body.data?.sections?.[0]?.id).toBe('profile-summary');
+        expect(body.data?.sections).toHaveLength(6);
+      });
+
+    await request(app.getHttpServer())
+      .get('/v1/cv')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data?.fullName).toBe(payload.fullName);
+      });
+  });
 });

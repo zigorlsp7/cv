@@ -19,7 +19,7 @@ export function RumObserver() {
       sendRumEvent({
         type: "js-error",
         path: window.location.pathname,
-        message: event.message || "Unknown client error",
+        message: event.message,
       });
     };
 
@@ -27,7 +27,7 @@ export function RumObserver() {
       const reason =
         typeof event.reason === "string"
           ? event.reason
-          : event.reason?.message || "Unhandled promise rejection";
+          : event.reason?.message;
       sendRumEvent({
         type: "js-error",
         path: window.location.pathname,
@@ -56,4 +56,3 @@ export function RumObserver() {
 
   return null;
 }
-
