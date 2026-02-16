@@ -13,6 +13,11 @@ export type ApiOperation = {
   responseCodes: ['200'];
 } | {
   method: 'GET';
+  path: '/v1/architecture/graph';
+  operationId: 'ArchitectureController_getGraph_v1';
+  responseCodes: ['200'];
+} | {
+  method: 'GET';
   path: '/v1/feature-flags';
   operationId: 'FeatureFlagsController_list_v1';
   responseCodes: ['200'];
@@ -38,7 +43,7 @@ export type ApiOperation = {
   responseCodes: ['201'];
 };
 
-export const API_OPERATION_COUNT = 7 as const;
+export const API_OPERATION_COUNT = 8 as const;
 
 export const API_OPERATIONS = [
   {
@@ -53,6 +58,14 @@ export const API_OPERATIONS = [
     "method": "GET",
     "path": "/metrics",
     "operationId": "MetricsController_getMetrics",
+    "responseCodes": [
+      "200"
+    ]
+  },
+  {
+    "method": "GET",
+    "path": "/v1/architecture/graph",
+    "operationId": "ArchitectureController_getGraph_v1",
     "responseCodes": [
       "200"
     ]
