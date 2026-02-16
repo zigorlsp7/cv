@@ -6,14 +6,20 @@
     "apps/*"
   ],
   "scripts": {
+    "prepare": "husky",
     "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "test:cov:api": "npm run test:cov -w @cv/api -- --watchman=false --ci",
+    "ci:quality:local": "npm run lint && npm run typecheck && npm run build && npm run test:cov:api",
+    "precommit:checks": "npm run ci:quality:local",
     "audit": "npm audit --audit-level=high",
     "contract:gen:web": "node ./scripts/generate-api-contract.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",
-    "@commitlint/config-conventional": "^20.4.1"
+    "@commitlint/config-conventional": "^20.4.1",
+    "husky": "^9.1.7"
   }
 }
