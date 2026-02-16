@@ -15,3 +15,8 @@ test('architecture page renders', async ({ page }) => {
   await expect(page.getByText(/CV Platform Architecture/i)).toBeVisible();
   await expect(page).toHaveURL(/\/architecture$/);
 });
+
+test('cv page shows inline edit controls', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /Edit personal info/i })).toBeVisible();
+});
