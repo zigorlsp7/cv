@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.2...cv-web-v0.1.3) (2026-02-16)
+
+
+### Features
+
+* **api,web:** add runtime feature flags and RUM ingestion baseline ([daceec2](https://github.com/zigorlsp7/cv-web/commit/daceec2c65b7db16518f7a72b3af46cb83fe910b))
+* basic cv info management and architecture description ([#18](https://github.com/zigorlsp7/cv-web/issues/18)) ([db15380](https://github.com/zigorlsp7/cv-web/commit/db15380c8bfb59443e7cd8597a6f8712e15a6ed0))
+
 ## [0.1.2](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.1...cv-web-v0.1.2) (2026-02-14)
 
 
