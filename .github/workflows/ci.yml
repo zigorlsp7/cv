@@ -359,6 +359,9 @@ jobs:
       - name: Compose up (postgres + api + web)
         run: docker compose -f docker/compose.yml up -d --build postgres api web
 
+      - name: Run API migrations
+        run: docker compose -f docker/compose.yml exec -T api npm run migration:run -w @cv/api
+
       - name: Wait for web
         run: |
           i=1
