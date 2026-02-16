@@ -18,5 +18,8 @@ describe('ArchitectureService', () => {
     expect(graph.edges.every((edge) => ids.has(edge.from) && ids.has(edge.to))).toBe(
       true,
     );
+    expect(ids.has('git')).toBe(true);
+    expect(ids.has('docker')).toBe(true);
+    expect(ids.has('husky')).toBe(true);
   });
 });
