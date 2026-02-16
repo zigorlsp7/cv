@@ -3,13 +3,20 @@ set -euo pipefail
 
 COMPOSE_FILE="docker/compose.yml"
 PROFILE_ARGS=(--profile test)
+STARTED_BY_HOOK=0
 
 cleanup() {
-  docker compose -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" down -v >/dev/null 2>&1 || true
+  if [ "$STARTED_BY_HOOK" -eq 1 ]; then
+    docker compose -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" rm -sf postgres_test >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT
 
-docker compose -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" up -d postgres_test
+existing_container="$(docker compose -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" ps -a -q postgres_test 2>/dev/null || true)"
+if [ -z "$existing_container" ]; then
+  docker compose -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" up -d postgres_test
+  STARTED_BY_HOOK=1
+fi
 
 i=1
 while [ $i -le 60 ]; do
