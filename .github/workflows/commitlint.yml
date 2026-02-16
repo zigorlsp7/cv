@@ -19,9 +19,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
+      - name: Install commitlint (minimal)
+        run: npm install --no-save --no-package-lock @commitlint/cli@20.4.1 @commitlint/config-conventional@20.4.1
 
       - name: Lint PR title (Conventional Commits)
-        run: echo "${{ github.event.pull_request.title }}" | npx commitlint
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | npx commitlint --config commitlint.config.js

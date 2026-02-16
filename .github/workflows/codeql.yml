@@ -36,7 +36,4 @@ jobs:
 
       - run: npm ci
 
-      # CodeQL prefers a build step if the project has one
-      - run: npm run build --workspaces
-
       - uses: github/codeql-action/analyze@v4
