@@ -52,6 +52,7 @@ describe('integration: async persistence', () => {
       aggregateId: 'u-123',
       eventType: 'UserCreated',
       payload: buildOutboxPayload({ userId: 'u-123' }),
+      availableAt: new Date(),
     });
 
     const pending = await outboxService.claimPending(10);
@@ -73,6 +74,7 @@ describe('integration: async persistence', () => {
       aggregateId: 'inv-7',
       eventType: 'InvoiceIssued',
       payload: buildOutboxPayload({ invoiceId: 'inv-7' }),
+      availableAt: new Date(),
     });
 
     const retryAt = new Date(Date.now() + 60_000);

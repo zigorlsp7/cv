@@ -26,6 +26,7 @@ describe('OutboxService', () => {
       aggregateId: 'u-1',
       eventType: 'UserCreated',
       payload: { userId: 'u-1' },
+      availableAt: new Date(),
     });
 
     expect(event.aggregateType).toBe('user');

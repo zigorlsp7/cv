@@ -8,7 +8,7 @@ export class RumService {
   ingest(events: RumEventDto[]): void {
     for (const event of events) {
       this.logger.log(
-        `rum type=${event.type} path=${event.path} metric=${event.metricName ?? '-'} value=${event.metricValue ?? '-'} requestId=${event.requestId ?? '-'} release=${event.release ?? '-'}`,
+        `rum type=${event.type} path=${event.path} metric=${event.metricName} value=${event.metricValue} requestId=${event.requestId} release=${event.release}`,
       );
     }
   }

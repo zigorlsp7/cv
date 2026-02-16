@@ -50,8 +50,7 @@ RUN rm -rf \
   /usr/local/bin/npm \
   /usr/local/bin/npx \
   /usr/bin/npm \
-  /usr/bin/npx \
-  || true
+  /usr/bin/npx
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]

@@ -10,18 +10,22 @@ export type RumEvent = {
 
 function isRumEnabled(): boolean {
   const raw = process.env.NEXT_PUBLIC_RUM_ENABLED;
-  if (!raw) return false;
+  if (!raw) {
+    throw new Error("NEXT_PUBLIC_RUM_ENABLED is required");
+  }
   const normalized = raw.trim().toLowerCase();
+  if (!["true", "1", "yes", "false", "0", "no"].includes(normalized)) {
+    throw new Error("NEXT_PUBLIC_RUM_ENABLED must be true/false (or 1/0, yes/no)");
+  }
   return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
-function resolveRumEndpoint(): string | null {
+function resolveRumEndpoint(): string {
   const explicit = process.env.NEXT_PUBLIC_RUM_ENDPOINT;
-  if (explicit && explicit.trim().length > 0) return explicit.trim();
-
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!apiBase) return null;
-  return `${apiBase.replace(/\/$/, "")}/v1/rum/events`;
+  if (!explicit || explicit.trim().length === 0) {
+    throw new Error("NEXT_PUBLIC_RUM_ENDPOINT is required");
+  }
+  return explicit.trim();
 }
 
 function buildRumPayload(event: RumEvent): string {
@@ -29,7 +33,6 @@ function buildRumPayload(event: RumEvent): string {
     events: [
       {
         ...event,
-        release: event.release ?? process.env.NEXT_PUBLIC_RELEASE,
       },
     ],
   });
@@ -38,7 +41,6 @@ function buildRumPayload(event: RumEvent): string {
 export function sendRumEvent(event: RumEvent): void {
   if (!isRumEnabled()) return;
   const endpoint = resolveRumEndpoint();
-  if (!endpoint) return;
 
   const payload = buildRumPayload(event);
   const body = new Blob([payload], { type: "application/json" });
@@ -55,4 +57,3 @@ export function sendRumEvent(event: RumEvent): void {
     keepalive: true,
   }).catch(() => undefined);
 }
-

@@ -60,17 +60,12 @@ function toPayload(profile: CvProfile) {
   };
 }
 
-function parseProfile(payload: Envelope<CvProfile> | CvProfile, fallback: CvProfile): CvProfile {
+function parseProfile(payload: Envelope<CvProfile> | CvProfile): CvProfile {
   const data = 'data' in payload ? payload.data : payload;
-  if (!data || typeof data !== 'object') return fallback;
-  return cloneProfile({
-    fullName: data.fullName ?? fallback.fullName,
-    role: data.role ?? fallback.role,
-    tagline: data.tagline ?? fallback.tagline,
-    chips: Array.isArray(data.chips) ? data.chips : fallback.chips,
-    sections: Array.isArray(data.sections) ? data.sections : fallback.sections,
-    updatedAt: data.updatedAt,
-  });
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid CV payload');
+  }
+  return cloneProfile(data);
 }
 
 export function CvProfileView({ initialProfile }: { initialProfile: CvProfile }) {
@@ -83,7 +78,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
   const [error, setError] = useState<string | null>(null);
   const canEdit = true;
   const activeSectionTitle =
-    editTarget?.kind === 'section' ? profile.sections[editTarget.index]?.title : null;
+    editTarget?.kind === 'section' ? profile.sections[editTarget.index]!.title : null;
 
   const openPersonalModal = () => {
     setError(null);
@@ -132,10 +127,10 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
       }
 
       const payload = (await response.json()) as Envelope<CvProfile> | CvProfile;
-      setProfile(parseProfile(payload, nextProfile));
+      setProfile(parseProfile(payload));
       closeModal();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save CV section');
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
@@ -242,7 +237,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
               <h3 className="text-lg font-semibold text-slate-900">
                 {editTarget.kind === 'personal'
                   ? 'Edit Personal Info'
-                  : `Edit ${activeSectionTitle ?? 'Section'}`}
+                  : `Edit ${activeSectionTitle}`}
               </h3>
               <button
                 type="button"

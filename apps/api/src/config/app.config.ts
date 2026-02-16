@@ -55,8 +55,10 @@ export type AppConfig = {
 const TRUE_VALUES = new Set(['true', '1', 'yes']);
 const FALSE_VALUES = new Set(['false', '0', 'no']);
 
-function parseBooleanEnv(input: unknown, fallback: boolean): boolean {
-  if (input === undefined || input === null || input === '') return fallback;
+function parseBooleanEnv(input: unknown): boolean {
+  if (input === undefined || input === null || input === '') {
+    throw new Error('Expected a boolean-like string');
+  }
   if (typeof input === 'boolean') return input;
   if (typeof input !== 'string')
     throw new Error('Expected a boolean-like string');
@@ -99,7 +101,7 @@ function parseFeatureFlagAssignments(input: string): Record<string, boolean> {
       );
     }
 
-    out[name] = parseBooleanEnv(value, false);
+    out[name] = parseBooleanEnv(value);
   }
 
   return out;
@@ -150,8 +152,20 @@ function resolveApiRoot(fromDir: string): string {
 }
 
 function loadEnvFile() {
-  const nodeEnv =
-    (process.env.NODE_ENV as NodeEnv | undefined) ?? 'development';
+  const nodeEnvRaw = process.env.NODE_ENV;
+  if (!nodeEnvRaw) {
+    throw new Error('Invalid environment configuration: NODE_ENV is required');
+  }
+  if (
+    nodeEnvRaw !== 'development' &&
+    nodeEnvRaw !== 'test' &&
+    nodeEnvRaw !== 'production'
+  ) {
+    throw new Error(
+      'Invalid environment configuration: NODE_ENV must be development, test, or production',
+    );
+  }
+  const nodeEnv = nodeEnvRaw as NodeEnv;
   const fileName = nodeEnv === 'test' ? '.env.test' : '.env';
   const apiRoot = resolveApiRoot(__dirname);
   const filePath = path.join(apiRoot, fileName);
@@ -163,13 +177,10 @@ function loadEnvFile() {
 
 const envSchema = z
   .object({
-    NODE_ENV: z
-      .enum(['development', 'test', 'production'])
-      .default('development'),
-    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    NODE_ENV: z.enum(['development', 'test', 'production']),
+    PORT: z.coerce.number().int().min(1).max(65535),
     LOG_LEVEL: z
-      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
-      .default('info'),
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
 
     DB_HOST: z.string().min(1),
     DB_PORT: z.coerce.number().int().min(1).max(65535),
@@ -177,37 +188,30 @@ const envSchema = z
     DB_PASSWORD: z.string().min(1),
     DB_NAME: z.string().min(1),
 
-    RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
-    RATE_LIMIT_LIMIT: z.coerce.number().int().positive().default(100),
+    RATE_LIMIT_TTL_MS: z.coerce.number().int().positive(),
+    RATE_LIMIT_LIMIT: z.coerce.number().int().positive(),
 
-    CORS_ORIGINS: z.string().default(''),
-    CORS_METHODS: z.string().default('GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS'),
-    CORS_ALLOWED_HEADERS: z
-      .string()
-      .default('Content-Type,Authorization,X-Request-Id'),
-    CORS_EXPOSED_HEADERS: z.string().default('X-Request-Id'),
-    CORS_CREDENTIALS: z.any().default('true'),
-    CORS_MAX_AGE_SECONDS: z.coerce.number().int().min(0).default(600),
+    CORS_ORIGINS: z.string(),
+    CORS_METHODS: z.string(),
+    CORS_ALLOWED_HEADERS: z.string(),
+    CORS_EXPOSED_HEADERS: z.string(),
+    CORS_CREDENTIALS: z.string().min(1),
+    CORS_MAX_AGE_SECONDS: z.coerce.number().int().min(0),
 
-    TRUST_PROXY: z.string().default('false'),
-    REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
-    HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
-    KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().positive().default(5_000),
-    REQUEST_BODY_LIMIT: z.string().min(1).default('1mb'),
+    TRUST_PROXY: z.string(),
+    REQUEST_TIMEOUT_MS: z.coerce.number().int().positive(),
+    HEADERS_TIMEOUT_MS: z.coerce.number().int().positive(),
+    KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().positive(),
+    REQUEST_BODY_LIMIT: z.string().min(1),
 
-    OTEL_SERVICE_NAME: z.string().min(1).default('cv-api'),
-    OTEL_EXPORTER_OTLP_ENDPOINT: z
-      .string()
-      .url()
-      .default('http://localhost:4318'),
-    OTEL_EXPORTER_OTLP_PROTOCOL: z
-      .enum(['http/protobuf', 'grpc'])
-      .default('http/protobuf'),
-    OTEL_TRACES_EXPORTER: z.string().default('otlp'),
-    OTEL_METRICS_EXPORTER: z.string().default('none'),
-    OTEL_LOGS_EXPORTER: z.string().default('none'),
+    OTEL_SERVICE_NAME: z.string().min(1),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url(),
+    OTEL_EXPORTER_OTLP_PROTOCOL: z.enum(['http/protobuf', 'grpc']),
+    OTEL_TRACES_EXPORTER: z.string(),
+    OTEL_METRICS_EXPORTER: z.string(),
+    OTEL_LOGS_EXPORTER: z.string(),
 
-    FEATURE_FLAGS: z.string().default(''),
+    FEATURE_FLAGS: z.string(),
   })
   .superRefine((data, ctx) => {
     const origins = parseList(data.CORS_ORIGINS);
@@ -231,7 +235,7 @@ const envSchema = z
 
     let credentials = true;
     try {
-      credentials = parseBooleanEnv(data.CORS_CREDENTIALS, true);
+      credentials = parseBooleanEnv(data.CORS_CREDENTIALS);
     } catch {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -298,7 +302,6 @@ function readEnv(): z.infer<typeof envSchema> {
 
   const parseResult = envSchema.safeParse({
     ...process.env,
-    CORS_ORIGINS: process.env.CORS_ORIGINS ?? process.env.CORS_ORIGIN,
   });
 
   if (!parseResult.success) {
@@ -314,10 +317,6 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
   const methods = parseList(raw.CORS_METHODS);
   const allowedHeaders = parseList(raw.CORS_ALLOWED_HEADERS);
   const exposedHeaders = parseList(raw.CORS_EXPOSED_HEADERS);
-  const defaultFeatures: Record<string, boolean> = {
-    swagger_docs: true,
-    rum_ingest: true,
-  };
   const parsedFeatureFlags = parseFeatureFlagAssignments(raw.FEATURE_FLAGS);
 
   return {
@@ -340,7 +339,7 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
       methods,
       allowedHeaders,
       exposedHeaders,
-      credentials: parseBooleanEnv(raw.CORS_CREDENTIALS, true),
+      credentials: parseBooleanEnv(raw.CORS_CREDENTIALS),
       maxAgeSeconds: raw.CORS_MAX_AGE_SECONDS,
     },
     http: {
@@ -358,10 +357,7 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
       metricsExporter: raw.OTEL_METRICS_EXPORTER,
       logsExporter: raw.OTEL_LOGS_EXPORTER,
     },
-    features: {
-      ...defaultFeatures,
-      ...parsedFeatureFlags,
-    },
+    features: parsedFeatureFlags,
   };
 }
 

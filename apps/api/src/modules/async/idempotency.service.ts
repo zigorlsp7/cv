@@ -6,7 +6,7 @@ import { ProcessedMessage } from './entities/processed-message.entity';
 type RecordProcessedInput = {
   messageId: string;
   topic: string;
-  key?: string;
+  key: string | null;
 };
 
 @Injectable()
@@ -28,7 +28,7 @@ export class IdempotencyService {
       await this.processedMessageRepo.insert({
         messageId: input.messageId,
         topic: input.topic,
-        key: input.key ?? null,
+        key: input.key,
       });
       return true;
     } catch (error) {

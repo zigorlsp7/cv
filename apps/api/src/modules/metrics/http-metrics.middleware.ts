@@ -30,8 +30,10 @@ export function httpMetricsMiddleware(
 
     const route =
       (req.route?.path as string | undefined) ??
-      (req.baseUrl ? `${req.baseUrl}${req.path}` : req.path) ??
-      'unknown';
+      (req.baseUrl ? `${req.baseUrl}${req.path}` : req.path);
+    if (!route) {
+      return;
+    }
 
     const labels = {
       method: req.method,

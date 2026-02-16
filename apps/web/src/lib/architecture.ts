@@ -43,7 +43,10 @@ type Envelope<T> = {
 };
 
 export async function getArchitectureGraph(): Promise<ArchitectureGraph> {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL is required to load architecture graph');
+  }
   const response = await fetch(`${base}/v1/architecture/graph`, {
     cache: 'no-store',
   });

@@ -100,54 +100,86 @@ function cleanList(values: unknown): string[] {
   return values.map(cleanText).filter((value) => value.length > 0);
 }
 
+function requireText(value: unknown, label: string): string {
+  const normalized = cleanText(value);
+  if (!normalized) {
+    throw new Error(`${label} is required`);
+  }
+  return normalized;
+}
+
+function requireList(values: unknown, label: string): string[] {
+  const normalized = cleanList(values);
+  if (normalized.length === 0) {
+    throw new Error(`${label} must contain at least one item`);
+  }
+  return normalized;
+}
+
 function normalizeSections(rawSections: unknown): CvSection[] {
+  if (!Array.isArray(rawSections)) {
+    throw new Error('sections must be an array');
+  }
+
   const byId = new Map<string, CvSection>();
-  const byTitle = new Map<string, CvSection>();
+  const templateIds = new Set(SECTION_TEMPLATES.map((section) => section.id));
+  const templateTitleById = new Map(
+    SECTION_TEMPLATES.map((section) => [section.id, section.title]),
+  );
 
-  if (Array.isArray(rawSections)) {
-    for (const candidate of rawSections) {
-      if (!candidate || typeof candidate !== 'object') continue;
-      const section = candidate as Partial<CvSection>;
-      const id = cleanText(section.id);
-      const title = cleanText(section.title);
-      const normalized: CvSection = {
-        id,
-        title,
-        summary: cleanText(section.summary),
-        bullets: cleanList(section.bullets),
-      };
-
-      if (id) byId.set(id, normalized);
-      if (title) byTitle.set(title.toLowerCase(), normalized);
+  for (const candidate of rawSections) {
+    if (!candidate || typeof candidate !== 'object') {
+      throw new Error('sections entries must be objects');
     }
+    const section = candidate as Partial<CvSection>;
+    const id = requireText(section.id, 'section.id');
+    const title = requireText(section.title, `section(${id}).title`);
+    if (!templateIds.has(id)) {
+      throw new Error(`Unsupported section id: ${id}`);
+    }
+    const expectedTitle = templateTitleById.get(id);
+    if (title.toLowerCase() !== expectedTitle?.toLowerCase()) {
+      throw new Error(`Section ${id} must keep title "${expectedTitle}"`);
+    }
+    const normalized: CvSection = {
+      id,
+      title,
+      summary: requireText(section.summary, `section(${id}).summary`),
+      bullets: requireList(section.bullets, `section(${id}).bullets`),
+    };
+
+    byId.set(id, normalized);
   }
 
   return SECTION_TEMPLATES.map((template) => {
-    const existing =
-      byId.get(template.id) ?? byTitle.get(template.title.toLowerCase());
-    const summary = existing?.summary ? existing.summary : template.summary;
-    const bullets = existing?.bullets?.length ? existing.bullets : template.bullets;
+    const existing = byId.get(template.id);
+    if (!existing) {
+      throw new Error(`Missing required section: ${template.id}`);
+    }
     return {
       id: template.id,
       title: template.title,
-      summary: cleanText(summary) || template.summary,
-      bullets: cleanList(bullets.length ? bullets : template.bullets),
+      summary: requireText(existing.summary, `section(${template.id}).summary`),
+      bullets: requireList(existing.bullets, `section(${template.id}).bullets`),
     };
   });
 }
 
 function normalizeDocument(input: unknown): CvDocument {
-  const source = input && typeof input === 'object' ? (input as Partial<CvDocument>) : {};
-  const fullName = cleanText(source.fullName) || DEFAULT_CV_DOCUMENT.fullName;
-  const role = cleanText(source.role) || DEFAULT_CV_DOCUMENT.role;
-  const tagline = cleanText(source.tagline) || DEFAULT_CV_DOCUMENT.tagline;
-  const chips = cleanList(source.chips);
+  if (!input || typeof input !== 'object') {
+    throw new Error('CV payload must be an object');
+  }
+  const source = input as Partial<CvDocument>;
+  const fullName = requireText(source.fullName, 'fullName');
+  const role = requireText(source.role, 'role');
+  const tagline = requireText(source.tagline, 'tagline');
+  const chips = requireList(source.chips, 'chips');
 
   return {
     fullName,
     role,
     tagline,
-    chips: chips.length ? chips : [...DEFAULT_CV_DOCUMENT.chips],
+    chips,
     sections: normalizeSections(source.sections),
   };
 }
@@ -197,7 +229,7 @@ export class CvService {
   }
 
   private toDto(profile: CvProfile): CvProfileDto {
-    const content = profile.content ?? DEFAULT_CV_DOCUMENT;
+    const content = normalizeDocument(profile.content);
     return {
       fullName: content.fullName,
       role: content.role,
