@@ -1,6 +1,11 @@
 import { DataSource } from 'typeorm';
 
-const DEFAULT_TABLES = ['dummy', 'processed_messages', 'outbox_events'] as const;
+const DEFAULT_TABLES = [
+  'dummy',
+  'processed_messages',
+  'outbox_events',
+  'cv_profiles',
+] as const;
 
 export async function truncateTestTables(
   dataSource: DataSource,

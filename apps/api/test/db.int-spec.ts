@@ -22,10 +22,12 @@ describe('integration: postgres connectivity', () => {
       SELECT
         to_regclass('public.migrations') as migrations_table,
         to_regclass('public.processed_messages') as processed_messages_table,
-        to_regclass('public.outbox_events') as outbox_events_table
+        to_regclass('public.outbox_events') as outbox_events_table,
+        to_regclass('public.cv_profiles') as cv_profiles_table
     `);
     expect(res?.[0]?.migrations_table).toBe('migrations');
     expect(res?.[0]?.processed_messages_table).toBe('processed_messages');
     expect(res?.[0]?.outbox_events_table).toBe('outbox_events');
+    expect(res?.[0]?.cv_profiles_table).toBe('cv_profiles');
   });
 });

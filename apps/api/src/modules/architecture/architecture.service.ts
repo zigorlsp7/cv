@@ -13,6 +13,15 @@ const NODES = [
     y: 170,
   },
   {
+    id: 'cv-editor',
+    label: 'CV Inline Editor',
+    layer: 'frontend',
+    kind: 'ui',
+    summary: 'Edit controls on each CV section open modal editors.',
+    x: 170,
+    y: 235,
+  },
+  {
     id: 'rum',
     label: 'RUM Observer',
     layer: 'frontend',
@@ -49,6 +58,15 @@ const NODES = [
     y: 500,
   },
   {
+    id: 'cv-api',
+    label: 'CV API',
+    layer: 'api',
+    kind: 'service',
+    summary: 'CRUD endpoint for persisted CV profile content.',
+    x: 430,
+    y: 620,
+  },
+  {
     id: 'postgres',
     label: 'Postgres (cv)',
     layer: 'data',
@@ -56,6 +74,15 @@ const NODES = [
     summary: 'Primary runtime data store.',
     x: 710,
     y: 200,
+  },
+  {
+    id: 'cv-storage',
+    label: 'CV Profile Storage',
+    layer: 'data',
+    kind: 'database',
+    summary: 'Singleton persisted CV profile document in Postgres.',
+    x: 710,
+    y: 280,
   },
   {
     id: 'postgres-test',
@@ -160,9 +187,12 @@ const NODES = [
 
 const EDGES = [
   { from: 'web', to: 'api', relation: 'calls' },
+  { from: 'web', to: 'cv-api', relation: 'fetches profile' },
+  { from: 'cv-editor', to: 'cv-api', relation: 'updates profile' },
   { from: 'web', to: 'architecture-api', relation: 'calls' },
   { from: 'rum', to: 'api', relation: 'sends events' },
   { from: 'architecture-api', to: 'feature-flags', relation: 'reads config' },
+  { from: 'cv-api', to: 'cv-storage', relation: 'reads/writes' },
   { from: 'api', to: 'postgres', relation: 'reads/writes' },
   { from: 'ci-int-e2e', to: 'postgres-test', relation: 'migrates/tests' },
   { from: 'api', to: 'prometheus', relation: 'exposes /metrics' },
