@@ -12,8 +12,11 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:cov:api": "npm run test:cov -w @cv/api -- --watchman=false --ci",
+    "test:int:api": "npm run test:int -w @cv/api -- --watchman=false --detectOpenHandles",
+    "test:e2e:api": "npm run test:e2e -w @cv/api -- --watchman=false --detectOpenHandles",
+    "ci:integration:local": "./scripts/precommit-integration-e2e.sh",
     "ci:quality:local": "npm run lint && npm run typecheck && npm run build && npm run test:cov:api",
-    "precommit:checks": "npm run ci:quality:local",
+    "precommit:checks": "npm run ci:quality:local && npm run ci:integration:local",
     "audit": "npm audit --audit-level=high",
     "contract:gen:web": "node ./scripts/generate-api-contract.mjs"
   },
