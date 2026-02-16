@@ -6,6 +6,7 @@ WORKDIR /workspace
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY apps/web/package.json apps/web/package.json
+COPY scripts/prepare-husky.mjs scripts/prepare-husky.mjs
 RUN npm ci -w web
 
 # ---- dev ----
