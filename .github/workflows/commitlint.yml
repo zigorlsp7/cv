@@ -19,9 +19,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-
-      - run: npm ci
 
       - name: Lint PR title (Conventional Commits)
-        run: echo "${{ github.event.pull_request.title }}" | npx commitlint
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | npx -y -p @commitlint/cli@20.4.1 -p @commitlint/config-conventional@20.4.1 commitlint --config commitlint.config.js
