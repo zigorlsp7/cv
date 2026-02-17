@@ -7,6 +7,7 @@ import { getUiTheme } from "@/lib/architecture-variants";
 const NAV_ITEMS = [
   { href: "/", label: "CV" },
   { href: "/architecture", label: "Architecture" },
+  { href: "/accessibility", label: "Accessibility" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {

@@ -31,6 +31,15 @@ const NODES = [
     y: 300,
   },
   {
+    id: 'a11y-checklist',
+    label: 'Accessibility Checklist',
+    layer: 'frontend',
+    kind: 'ui',
+    summary: 'A11y coverage checklist and Lighthouse targets for UI compliance.',
+    x: 170,
+    y: 380,
+  },
+  {
     id: 'api',
     label: 'API (NestJS)',
     layer: 'api',
@@ -210,6 +219,15 @@ const NODES = [
     x: 840,
     y: 680,
   },
+  {
+    id: 'ci-a11y',
+    label: 'CI Accessibility',
+    layer: 'delivery',
+    kind: 'pipeline',
+    summary: 'Playwright + axe-core audits for regression coverage.',
+    x: 980,
+    y: 680,
+  },
 ] as const;
 
 const EDGES = [
@@ -220,6 +238,7 @@ const EDGES = [
   { from: 'web', to: 'cv-api', relation: 'fetches profile' },
   { from: 'cv-editor', to: 'cv-api', relation: 'updates profile' },
   { from: 'web', to: 'architecture-api', relation: 'calls' },
+  { from: 'web', to: 'a11y-checklist', relation: 'renders' },
   { from: 'rum', to: 'api', relation: 'sends events' },
   { from: 'architecture-api', to: 'feature-flags', relation: 'reads config' },
   { from: 'cv-api', to: 'cv-storage', relation: 'reads/writes' },
@@ -245,6 +264,8 @@ const EDGES = [
   { from: 'ci-security', to: 'api', relation: 'scan image/deps' },
   { from: 'ci-security', to: 'web', relation: 'scan image/deps' },
   { from: 'ci-web-smoke', to: 'web', relation: 'playwright smoke' },
+  { from: 'ci-web-smoke', to: 'ci-a11y', relation: 'runs audits' },
+  { from: 'ci-a11y', to: 'web', relation: 'scans pages' },
 ] as const;
 
 @Injectable()

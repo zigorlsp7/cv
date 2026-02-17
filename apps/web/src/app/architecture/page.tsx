@@ -9,7 +9,10 @@ export default async function ArchitecturePage() {
   const theme = getUiTheme();
 
   return (
-    <main className={`min-h-[calc(100vh-4rem)] p-6 md:p-10 ${theme.mainBg}`}>
+    <main
+      id="main-content"
+      className={`min-h-[calc(100vh-4rem)] p-6 md:p-10 ${theme.mainBg}`}
+    >
       <div className="mx-auto max-w-7xl space-y-6">
         <header className={`rounded-3xl p-6 ${theme.surface}`}>
           <p className={`text-xs font-bold uppercase tracking-[0.16em] ${theme.muted}`}>

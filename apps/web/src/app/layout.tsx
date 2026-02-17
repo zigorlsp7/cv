@@ -17,6 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
         <RumObserver />
         <Suspense fallback={<div className="h-16 border-b border-slate-200/80 bg-white/80" />}>
           <TopNav />

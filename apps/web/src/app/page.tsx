@@ -9,7 +9,10 @@ export default async function Home() {
   const profile = await getCvProfile();
 
   return (
-    <main className={`min-h-[calc(100vh-4rem)] px-6 py-12 ${theme.mainBg}`}>
+    <main
+      id="main-content"
+      className={`min-h-[calc(100vh-4rem)] px-6 py-12 ${theme.mainBg}`}
+    >
       <div className="mx-auto max-w-6xl">
         <CvProfileView initialProfile={profile} />
       </div>
