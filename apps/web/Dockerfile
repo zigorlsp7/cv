@@ -12,6 +12,9 @@ RUN npm ci -w web
 # ---- dev ----
 FROM base AS dev
 ENV NODE_ENV=development
+RUN apk add --no-cache bash curl \
+  && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash \
+  && apk add --no-cache infisical
 COPY --from=deps /workspace/node_modules /workspace/node_modules
 COPY --from=deps /workspace/apps/web/node_modules /workspace/apps/web/node_modules
 COPY apps/web apps/web

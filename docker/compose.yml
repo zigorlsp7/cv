@@ -144,19 +144,30 @@ services:
     env_file:
       - ../apps/web/.env
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://api:3000
-      NEXT_PUBLIC_RUM_ENABLED: "false"
-      NEXT_PUBLIC_RUM_ENDPOINT: http://localhost:3000/v1/rum/events
+      INFISICAL_API_URL: ${INFISICAL_API_URL:-http://infisical:8080}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+      INFISICAL_ENV: ${INFISICAL_ENV:-dev}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN}
     ports:
       - "3001:3001"
     depends_on:
       - api
+      - infisical
     volumes:
       - ../apps/web:/workspace/apps/web
       - ../package.json:/workspace/package.json
       - ../package-lock.json:/workspace/package-lock.json
       - /workspace/node_modules
       - /workspace/apps/web/node_modules
+    command: >
+      sh -lc "until curl -fsS $INFISICAL_API_URL/api/status >/dev/null; do
+        echo 'Waiting for Infisical...'; sleep 2; done;
+      infisical run
+      --token=$INFISICAL_TOKEN
+      --projectId=$INFISICAL_PROJECT_ID
+      --env=$INFISICAL_ENV
+      --domain=$INFISICAL_API_URL
+      -- npm run dev -w web -- -p 3001 -H 0.0.0.0"
     logging:
       driver: "json-file"
       options:
@@ -268,9 +279,46 @@ services:
       - ./tolgee/config.yaml:/config.yaml:ro
     command: ["--config=/config.yaml"]
 
+  infisical_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-infisical}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-infisical}
+      POSTGRES_DB: ${POSTGRES_DB:-infisical}
+    ports:
+      - "5434:5432"
+    volumes:
+      - infisical-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  infisical_redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - infisical-redis:/data
+
+  infisical:
+    image: infisical/infisical:latest
+    env_file:
+      - ./infisical/.env
+    depends_on:
+      infisical_db:
+        condition: service_healthy
+      infisical_redis:
+        condition: service_started
+    ports:
+      - "8091:8080"
+
 volumes:
   pgdata:
   pgdata_test:
   grafana-data:
   loki-data:
   tolgee-data:
+  infisical-db:
+  infisical-redis:

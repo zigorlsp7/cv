@@ -39,6 +39,28 @@ Set these environment variables (server-side only):
 
 When set, the web app will pull translations at runtime and cache them for 60 seconds.
 
+## Secrets (Infisical)
+
+Infisical is included for local secret management. Tolgee API key should be stored in Infisical
+and injected into the web container at runtime.
+
+### Run Infisical locally
+
+1. Create `docker/infisical/.env` from the example:
+   - `cp docker/infisical/.env.example docker/infisical/.env`
+2. Start Infisical:
+   - `set -a && source docker/infisical/.env && set +a && docker compose -f docker/compose.yml up -d infisical infisical_db infisical_redis`
+3. Open `http://localhost:8091` and create a project.
+4. Create a secret `TOLGEE_API_KEY` in the `dev` environment.
+5. Create a service token and export:
+   - `INFISICAL_TOKEN`
+   - `INFISICAL_PROJECT_ID`
+
+Then create a root `.env` and start the web container:
+
+- `cp .env.example .env`
+- Fill in `INFISICAL_PROJECT_ID` and `INFISICAL_TOKEN`
+
 ## Quality Gates in CI
 
 - Lint + typecheck + build

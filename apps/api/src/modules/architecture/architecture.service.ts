@@ -229,6 +229,15 @@ const NODES = [
     y: 540,
   },
   {
+    id: 'infisical',
+    label: 'Infisical Secrets',
+    layer: 'delivery',
+    kind: 'service',
+    summary: 'Self-hosted secrets manager for runtime configuration.',
+    x: 780,
+    y: 540,
+  },
+  {
     id: 'ci-a11y',
     label: 'CI Accessibility',
     layer: 'delivery',
@@ -249,6 +258,7 @@ const EDGES = [
   { from: 'web', to: 'architecture-api', relation: 'calls' },
   { from: 'web', to: 'a11y-checklist', relation: 'renders' },
   { from: 'web', to: 'tolgee', relation: 'loads translations' },
+  { from: 'web', to: 'infisical', relation: 'loads secrets' },
   { from: 'rum', to: 'api', relation: 'sends events' },
   { from: 'architecture-api', to: 'feature-flags', relation: 'reads config' },
   { from: 'cv-api', to: 'cv-storage', relation: 'reads/writes' },
