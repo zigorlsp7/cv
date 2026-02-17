@@ -128,7 +128,7 @@ jobs:
           NEXT_PUBLIC_RUM_ENABLED=false
           NEXT_PUBLIC_RUM_ENDPOINT=http://api:3000/v1/rum/events
           TOLGEE_API_URL=${{ secrets.TOLGEE_API_URL }}
-          TOLGEE_PROJECT_ID=2
+          TOLGEE_PROJECT_ID=${{ secrets.TOLGEE_PROJECT_ID }}
           EOF
 
       - name: Compose up (postgres_test + api_test)
@@ -379,7 +379,7 @@ jobs:
           NEXT_PUBLIC_RUM_ENABLED=false
           NEXT_PUBLIC_RUM_ENDPOINT=http://api_test:3000/v1/rum/events
           TOLGEE_API_URL=${{ secrets.TOLGEE_API_URL }}
-          TOLGEE_PROJECT_ID=2
+          TOLGEE_PROJECT_ID=${{ secrets.TOLGEE_PROJECT_ID }}
           EOF
 
       - name: Compose up (postgres_test + api_test + web)
