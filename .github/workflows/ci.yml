@@ -356,6 +356,16 @@ jobs:
       - name: Install Playwright browser
         run: npm exec -w web playwright install --with-deps chromium
 
+      - name: Prepare Infisical env
+        run: |
+          cp docker/infisical/.env.example docker/infisical/.env
+          cat > docker/.env <<'EOF'
+          INFISICAL_API_URL=http://infisical:8080
+          INFISICAL_ENV=dev
+          INFISICAL_PROJECT_ID=${{ secrets.INFISICAL_PROJECT_ID }}
+          INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
+          EOF
+
       - name: Compose up (postgres + api + web)
         run: docker compose -f docker/compose.yml up -d --build postgres api web
 
