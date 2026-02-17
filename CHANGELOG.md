@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.3...cv-web-v0.1.4) (2026-02-17)
+
+
+### Features
+
+* **a11y:** add accessibility audits and UI focus fixes ([#21](https://github.com/zigorlsp7/cv-web/issues/21)) ([5740c2a](https://github.com/zigorlsp7/cv-web/commit/5740c2aa3e807a578ac24689c21e14bfa3ca5646))
+
 ## [0.1.3](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.2...cv-web-v0.1.3) (2026-02-16)
 
 
