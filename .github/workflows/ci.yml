@@ -118,6 +118,25 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Prepare CI env
+        run: |
+          mkdir -p docker/infisical
+          cat > docker/infisical/.env <<'EOF'
+          ENCRYPTION_KEY=replace-with-hex-16-bytes
+          AUTH_SECRET=replace-with-base64-32-bytes
+
+          POSTGRES_USER=infisical
+          POSTGRES_PASSWORD=infisical
+          POSTGRES_DB=infisical
+          DB_CONNECTION_URI=postgres://infisical:infisical@infisical_db:5432/infisical
+
+          REDIS_URL=redis://infisical_redis:6379
+          SITE_URL=http://localhost:8091
+          EOF
+          cat > docker/.env <<'EOF'
+          TOLGEE_API_KEY=${{ secrets.TOLGEE_API_KEY }}
+          EOF
+
       - name: Compose up (postgres_test + api_test)
         run: docker compose -f docker/compose.yml --profile test up -d --build postgres_test api_test
 
