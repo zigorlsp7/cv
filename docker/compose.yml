@@ -145,9 +145,10 @@ services:
       - ../apps/web/.env
     environment:
       INFISICAL_API_URL: ${INFISICAL_API_URL:-http://infisical:8080}
-      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:-}
       INFISICAL_ENV: ${INFISICAL_ENV:-dev}
-      INFISICAL_TOKEN: ${INFISICAL_TOKEN}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN:-}
+      TOLGEE_API_KEY: ${TOLGEE_API_KEY:-}
     ports:
       - "3001:3001"
     depends_on:
@@ -160,14 +161,7 @@ services:
       - /workspace/node_modules
       - /workspace/apps/web/node_modules
     command: >
-      sh -lc "until curl -fsS $INFISICAL_API_URL/api/status >/dev/null; do
-        echo 'Waiting for Infisical...'; sleep 2; done;
-      infisical run
-      --token=$INFISICAL_TOKEN
-      --projectId=$INFISICAL_PROJECT_ID
-      --env=$INFISICAL_ENV
-      --domain=$INFISICAL_API_URL
-      -- npm run dev -w web -- -p 3001 -H 0.0.0.0"
+      sh -lc "if [ -n \"$INFISICAL_TOKEN\" ]; then until curl -fsS \"$INFISICAL_API_URL/api/status\" >/dev/null; do echo 'Waiting for Infisical...'; sleep 2; done; infisical run --token=\"$INFISICAL_TOKEN\" --projectId=\"$INFISICAL_PROJECT_ID\" --env=\"$INFISICAL_ENV\" --domain=\"$INFISICAL_API_URL\" -- npm run dev -w web -- -p 3001 -H 0.0.0.0; else npm run dev -w web -- -p 3001 -H 0.0.0.0; fi"
     logging:
       driver: "json-file"
       options:
