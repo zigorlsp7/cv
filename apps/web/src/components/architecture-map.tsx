@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
+import { useI18n } from '@/i18n/client';
 import type {
   ArchitectureEdge,
   ArchitectureGraph,
@@ -103,6 +104,7 @@ function buildAdjacency(edges: ArchitectureEdge[]): Map<string, Set<string>> {
 export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
   const markerId = useId().replace(/:/g, '');
   const theme = THEME;
+  const { t } = useI18n();
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     graph.nodes[0]?.id ?? null,
@@ -193,14 +195,13 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
         </div>
 
         <p id={instructionsId} className="sr-only">
-          Use the layer filters, then navigate nodes with Tab. Press Enter or Space to select
-          a node and update the details panel.
+          {t('architecture.map.instructions')}
         </p>
 
         <div
           className={theme.canvas}
           role="group"
-          aria-label="Architecture map"
+          aria-label={t('architecture.map.ariaLabel')}
           aria-describedby={instructionsId}
         >
           <div className={theme.canvasGlowA} />
@@ -266,7 +267,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
                   }}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Select node ${node.label}`}
+                  aria-label={t('architecture.map.selectNode', { label: node.label })}
                   aria-pressed={isSelected}
                 >
                   <circle
@@ -300,7 +301,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
         aria-labelledby="architecture-node-details"
       >
         <h2 className={theme.panelTitle} id="architecture-node-details">
-          Node Details
+          {t('architecture.details.title')}
         </h2>
         {selectedNode ? (
           <>
@@ -310,20 +311,20 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-semibold">
               <span className={`rounded-full px-2 py-1 ${theme.chipDefault}`}>
-                layer: {selectedNode.layer}
+                {t('architecture.details.layer')}: {selectedNode.layer}
               </span>
               <span className={`rounded-full px-2 py-1 ${theme.chipDefault}`}>
-                kind: {selectedNode.kind}
+                {t('architecture.details.kind')}: {selectedNode.kind}
               </span>
             </div>
 
             <div>
               <p className={theme.panelTitle}>
-                Incoming
+                {t('architecture.details.incoming')}
               </p>
               <ul className={`mt-2 space-y-1 text-sm ${theme.panelText}`}>
                 {inboundEdges.length === 0 ? (
-                  <li className="text-zinc-400">none</li>
+                  <li className="text-zinc-400">{t('architecture.details.none')}</li>
                 ) : (
                   inboundEdges.map((edge) => (
                     <li key={`in-${edge.from}-${edge.relation}`}>
@@ -337,11 +338,11 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
 
             <div>
               <p className={theme.panelTitle}>
-                Outgoing
+                {t('architecture.details.outgoing')}
               </p>
               <ul className={`mt-2 space-y-1 text-sm ${theme.panelText}`}>
                 {outboundEdges.length === 0 ? (
-                  <li className="text-zinc-400">none</li>
+                  <li className="text-zinc-400">{t('architecture.details.none')}</li>
                 ) : (
                   outboundEdges.map((edge) => (
                     <li key={`out-${edge.to}-${edge.relation}`}>
@@ -359,7 +360,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
 
         <div className={theme.featureBox}>
           <h3 className={theme.panelTitle}>
-            Runtime Feature Flags
+            {t('architecture.flags.title')}
           </h3>
           <div className="mt-2 space-y-1 text-sm">
             {Object.entries(graph.featureFlags).map(([flag, enabled]) => (
@@ -370,7 +371,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
                     enabled ? theme.featureEnabled : theme.featureDisabled
                   }`}
                 >
-                  {enabled ? 'enabled' : 'disabled'}
+                  {enabled ? t('architecture.flags.enabled') : t('architecture.flags.disabled')}
                 </span>
               </div>
             ))}

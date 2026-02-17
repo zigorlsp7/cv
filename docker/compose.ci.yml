@@ -1,0 +1,14 @@
+services:
+  web:
+    depends_on:
+      api:
+        condition: service_started
+
+  infisical:
+    profiles: ["local"]
+
+  infisical_db:
+    profiles: ["local"]
+
+  infisical_redis:
+    profiles: ["local"]

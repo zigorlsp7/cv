@@ -1,12 +1,14 @@
 import { ArchitectureMap } from '@/components/architecture-map';
 import { getArchitectureGraph } from '@/lib/architecture';
 import { getUiTheme } from '@/lib/architecture-variants';
+import { getTranslator } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ArchitecturePage() {
   const graph = await getArchitectureGraph();
   const theme = getUiTheme();
+  const t = await getTranslator();
 
   return (
     <main
@@ -16,25 +18,23 @@ export default async function ArchitecturePage() {
       <div className="mx-auto max-w-7xl space-y-6">
         <header className={`rounded-3xl p-6 ${theme.surface}`}>
           <p className={`text-xs font-bold uppercase tracking-[0.16em] ${theme.muted}`}>
-            Interactive Platform Blueprint
+            {t('architecture.overline')}
           </p>
           <h1 className={`mt-2 text-3xl font-semibold md:text-4xl ${theme.title}`}>
-            CV Platform Architecture
+            {t('architecture.title')}
           </h1>
           <p className={`mt-3 max-w-3xl text-sm leading-relaxed md:text-base ${theme.text}`}>
-            This page is powered by a real API endpoint and maps the current platform
-            components across frontend, backend, data, observability, and delivery
-            pipelines. Select nodes and layers to inspect dependencies and runtime links.
+            {t('architecture.subtitle')}
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             <span className={`rounded-full px-3 py-1.5 ${theme.chipPrimary}`}>
-              version {graph.version}
+              {t('architecture.version', { version: graph.version })}
             </span>
             <span className={`rounded-full px-3 py-1.5 ${theme.chipSecondary}`}>
-              {graph.stats.nodeCount} nodes
+              {t('architecture.nodes', { count: graph.stats.nodeCount })}
             </span>
             <span className={`rounded-full px-3 py-1.5 ${theme.chipSecondary}`}>
-              {graph.stats.edgeCount} edges
+              {t('architecture.edges', { count: graph.stats.edgeCount })}
             </span>
           </div>
         </header>

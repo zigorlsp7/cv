@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+tolgee:
+  front-end-url: http://localhost:8090
+  authentication:
+    enabled: true
+    initial-username: admin
+    initial-password: admin
+    jwt-secret: change-me

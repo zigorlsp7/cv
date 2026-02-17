@@ -118,8 +118,20 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Prepare CI env
+        run: |
+          cat > docker/.env <<'EOF'
+          TOLGEE_API_KEY=${{ secrets.TOLGEE_API_KEY }}
+          EOF
+          cat > apps/web/.env <<'EOF'
+          NEXT_PUBLIC_API_BASE_URL=http://api:3000
+          NEXT_PUBLIC_RUM_ENABLED=false
+          NEXT_PUBLIC_RUM_ENDPOINT=http://api:3000/v1/rum/events
+          I18N_SOURCE=local
+          EOF
+
       - name: Compose up (postgres_test + api_test)
-        run: docker compose -f docker/compose.yml --profile test up -d --build postgres_test api_test
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test
 
       - name: Wait for API (test)
         run: |
@@ -132,7 +144,7 @@ jobs:
             sleep 2
             i=$((i+1))
           done
-          docker compose -f docker/compose.yml logs --no-color api_test
+          docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color api_test
           exit 1
 
       - name: Run migrations (test DB)
@@ -234,7 +246,7 @@ jobs:
       - name: Export OpenAPI spec (api_test)
         run: |
           mkdir -p artifacts
-          docker compose -f docker/compose.yml --profile test exec -T api_test sh -lc 'wget -qO- http://localhost:3000/docs-json' > artifacts/openapi.test.json
+          docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test sh -lc 'wget -qO- http://localhost:3000/docs-json' > artifacts/openapi.test.json
 
       - name: Regenerate web API contract
         run: npm run contract:gen:web -- artifacts/openapi.test.json apps/web/src/lib/api/generated.ts
@@ -243,10 +255,10 @@ jobs:
         run: git diff --exit-code -- apps/web/src/lib/api/generated.ts
 
       - name: Backup/restore drill (test Postgres)
-        run: ./scripts/db-backup-restore-drill.sh
+        run: COMPOSE_FILES="docker/compose.yml docker/compose.ci.yml" ./scripts/db-backup-restore-drill.sh
 
       - name: k6 smoke (test)
-        run: docker compose -f docker/compose.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
 
       - name: Upload k6 summary
         if: ${{ always() && hashFiles('artifacts/k6-summary-test.json') != '' }}
@@ -258,11 +270,11 @@ jobs:
 
       - name: Compose logs (on failure)
         if: failure()
-        run: docker compose -f docker/compose.yml logs --no-color
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color
 
       - name: Compose down
         if: always()
-        run: docker compose -f docker/compose.yml down -v
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml down -v
 
   security-supply-chain:
     name: Security + Supply Chain
@@ -356,11 +368,23 @@ jobs:
       - name: Install Playwright browser
         run: npm exec -w web playwright install --with-deps chromium
 
-      - name: Compose up (postgres + api + web)
-        run: docker compose -f docker/compose.yml up -d --build postgres api web
+      - name: Prepare CI env
+        run: |
+          cat > docker/.env <<'EOF'
+          TOLGEE_API_KEY=${{ secrets.TOLGEE_API_KEY }}
+          EOF
+          cat > apps/web/.env <<'EOF'
+          NEXT_PUBLIC_API_BASE_URL=http://api_test:3000
+          NEXT_PUBLIC_RUM_ENABLED=false
+          NEXT_PUBLIC_RUM_ENDPOINT=http://api_test:3000/v1/rum/events
+          I18N_SOURCE=local
+          EOF
+
+      - name: Compose up (postgres_test + api_test + web)
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test web
 
       - name: Run API migrations
-        run: docker compose -f docker/compose.yml exec -T api npm run migration:run -w @cv/api
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
 
       - name: Wait for web
         run: |
@@ -373,7 +397,7 @@ jobs:
             sleep 2
             i=$((i+1))
           done
-          docker compose -f docker/compose.yml logs --no-color web api
+          docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color web api
           exit 1
 
       - name: Run smoke tests
@@ -384,8 +408,8 @@ jobs:
 
       - name: Compose logs (on failure)
         if: failure()
-        run: docker compose -f docker/compose.yml logs --no-color web api
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color web api
 
       - name: Compose down
         if: always()
-        run: docker compose -f docker/compose.yml down -v
+        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml down -v

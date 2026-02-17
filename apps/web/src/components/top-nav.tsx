@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getUiTheme } from "@/lib/architecture-variants";
-
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useI18n } from "@/i18n/client";
 const NAV_ITEMS = [
-  { href: "/", label: "CV" },
-  { href: "/architecture", label: "Architecture" },
-  { href: "/accessibility", label: "Accessibility" },
+  { href: "/", labelKey: "nav.cv" },
+  { href: "/architecture", labelKey: "nav.architecture" },
+  { href: "/accessibility", labelKey: "nav.accessibility" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -18,6 +19,7 @@ function isActive(pathname: string, href: string): boolean {
 export function TopNav() {
   const pathname = usePathname();
   const theme = getUiTheme();
+  const { t } = useI18n();
 
   return (
     <header className={`sticky top-0 z-50 ${theme.navHeader}`}>
@@ -26,7 +28,7 @@ export function TopNav() {
           href="/"
           className={`text-sm font-semibold tracking-[0.1em] ${theme.navBrand}`}
         >
-          CV PLATFORM
+          {t("nav.brand")}
         </Link>
 
         <nav aria-label="Primary">
@@ -42,13 +44,14 @@ export function TopNav() {
                       active ? theme.navLinkActive : theme.navLinkIdle
                     }`}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </li>
               );
             })}
           </ul>
         </nav>
+        <LanguageSwitcher />
       </div>
     </header>
   );

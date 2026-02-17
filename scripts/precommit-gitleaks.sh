@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks is not installed. Install it to run secret scans." >&2
+  echo "macOS (brew): brew install gitleaks" >&2
+  echo "Other: https://github.com/gitleaks/gitleaks#installation" >&2
+  exit 1
+fi
+
+# Precommit should only scan staged files to avoid flagging ignored/local-only secrets.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git diff --cached --name-only -z | xargs -0 -I {} sh -c 'test -f "$1" && cat "$1"' _ {} | \
+    gitleaks detect --pipe --redact --config .gitleaks.toml
+else
+  gitleaks detect --source . --redact --config .gitleaks.toml
+fi
