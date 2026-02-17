@@ -1,7 +1,8 @@
 services:
   web:
     depends_on:
-      - api
+      api:
+        condition: service_started
 
   infisical:
     profiles: ["local"]
