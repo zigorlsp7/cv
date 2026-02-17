@@ -3,6 +3,8 @@ services:
     depends_on:
       api:
         condition: service_started
+      tolgee:
+        condition: service_started
 
   infisical:
     profiles: ["local"]

@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker/compose.yml}"
+COMPOSE_FILES="${COMPOSE_FILES:-docker/compose.yml}"
 COMPOSE_PROFILE="${COMPOSE_PROFILE:-test}"
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres_test}"
 DB_USER="${DB_USER:-app}"
@@ -10,7 +10,12 @@ SOURCE_DB="${SOURCE_DB:-cv_test}"
 RESTORE_DB="${RESTORE_DB:-cv_restore_drill}"
 DUMP_FILE="/tmp/${SOURCE_DB}_drill.sql"
 
-docker compose -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" exec -T "$POSTGRES_SERVICE" sh -lc "
+COMPOSE_ARGS=""
+for file in $COMPOSE_FILES; do
+  COMPOSE_ARGS="$COMPOSE_ARGS -f $file"
+done
+
+docker compose $COMPOSE_ARGS --profile "$COMPOSE_PROFILE" exec -T "$POSTGRES_SERVICE" sh -lc "
 set -eu
 export PGPASSWORD='$DB_PASSWORD'
 pg_dump -U '$DB_USER' -d '$SOURCE_DB' > '$DUMP_FILE'

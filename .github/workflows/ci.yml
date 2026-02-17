@@ -256,7 +256,7 @@ jobs:
         run: git diff --exit-code -- apps/web/src/lib/api/generated.ts
 
       - name: Backup/restore drill (test Postgres)
-        run: ./scripts/db-backup-restore-drill.sh
+        run: COMPOSE_FILES="docker/compose.yml docker/compose.ci.yml" ./scripts/db-backup-restore-drill.sh
 
       - name: k6 smoke (test)
         run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
@@ -382,8 +382,8 @@ jobs:
           TOLGEE_PROJECT_ID=2
           EOF
 
-      - name: Compose up (postgres_test + api_test + web)
-        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test web
+      - name: Compose up (postgres_test + api_test + tolgee + web)
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test tolgee web
 
       - name: Run API migrations
         run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
