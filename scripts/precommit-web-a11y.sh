@@ -3,13 +3,22 @@ set -euo pipefail
 
 COMPOSE_FILE="docker/compose.yml"
 STACK_SERVICES=(postgres api web)
+STARTED_BY_HOOK=0
 
 cleanup() {
-  docker compose -f "$COMPOSE_FILE" down -v >/dev/null 2>&1 || true
+  if [ "$STARTED_BY_HOOK" -eq 1 ]; then
+    docker compose -f "$COMPOSE_FILE" down -v >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT
 
-docker compose -f "$COMPOSE_FILE" up -d "${STACK_SERVICES[@]}"
+existing_container="$(
+  docker compose -f "$COMPOSE_FILE" ps -a -q web 2>/dev/null || true
+)"
+if [ -z "$existing_container" ]; then
+  docker compose -f "$COMPOSE_FILE" up -d "${STACK_SERVICES[@]}"
+  STARTED_BY_HOOK=1
+fi
 
 echo "Waiting for API to become healthy..."
 i=1
