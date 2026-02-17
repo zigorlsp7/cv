@@ -383,6 +383,8 @@ jobs:
           EOF
 
       - name: Compose up (postgres_test + api_test + tolgee + web)
+        env:
+          TOLGEE_API_KEY: ${{ secrets.TOLGEE_API_KEY }}
         run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test tolgee web
 
       - name: Run API migrations

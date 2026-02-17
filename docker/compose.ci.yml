@@ -4,7 +4,7 @@ services:
       api:
         condition: service_started
       tolgee:
-        condition: service_started
+        condition: service_healthy
 
   infisical:
     profiles: ["local"]
