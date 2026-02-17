@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.4...cv-web-v0.1.5) (2026-02-17)
+
+
+### Features
+
+* **i18n:** require Tolgee runtime translations and drop local fallback ([#23](https://github.com/zigorlsp7/cv-web/issues/23)) ([b805acb](https://github.com/zigorlsp7/cv-web/commit/b805acbcf45244ab52085917f7b490f1898d02fc))
+
 ## [0.1.4](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.3...cv-web-v0.1.4) (2026-02-17)
 
 
