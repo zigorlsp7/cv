@@ -17,6 +17,27 @@ Frontend workspace for the CV platform template.
 - `NEXT_PUBLIC_RUM_ENABLED` - Enable browser RUM emission (`true`/`false`)
 - `NEXT_PUBLIC_RUM_ENDPOINT` - Optional explicit RUM ingest URL (defaults to `${NEXT_PUBLIC_API_BASE_URL}/v1/rum/events` when not set)
 - `NEXT_PUBLIC_RELEASE` - Optional release tag attached to RUM events
+## Localization (Tolgee)
+
+Translations are managed in Tolgee and pulled at runtime (no local fallback).
+The UI locale is stored in the `cv-language` cookie and can be changed from the header.
+
+### Run Tolgee locally
+
+1. Start Tolgee:
+   - `docker compose -f docker/compose.yml up -d tolgee`
+2. Open `http://localhost:8090` and sign in with:
+   - user: `admin`
+   - pass: `admin`
+### Automatic pull (recommended)
+
+Set these environment variables (server-side only):
+
+- `TOLGEE_API_URL` (ex: `http://localhost:8090`)
+- `TOLGEE_PROJECT_ID` (ex: `2`)
+- `TOLGEE_API_KEY` (project API key)
+
+When set, the web app will pull translations at runtime and cache them for 60 seconds.
 
 ## Quality Gates in CI
 

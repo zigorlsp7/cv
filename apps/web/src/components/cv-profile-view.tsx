@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '@/i18n/client';
 import { getUiTheme } from '@/lib/architecture-variants';
 import type { CvProfile } from '@/lib/cv-content';
 
@@ -70,6 +71,7 @@ function parseProfile(payload: Envelope<CvProfile> | CvProfile): CvProfile {
 
 export function CvProfileView({ initialProfile }: { initialProfile: CvProfile }) {
   const theme = getUiTheme();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<CvProfile>(() => cloneProfile(initialProfile));
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [personalDraft, setPersonalDraft] = useState<PersonalDraft | null>(null);
@@ -240,10 +242,10 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 type="button"
                 onClick={openPersonalModal}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${theme.chipPrimary}`}
-                aria-label="Edit personal info"
+                aria-label={t('cv.editPersonalAria')}
                 aria-haspopup="dialog"
               >
-                Edit
+                {t('cv.edit')}
               </button>
             ) : null}
           </div>
@@ -268,10 +270,10 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                   type="button"
                   onClick={() => openSectionModal(index)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold ${theme.chipPrimary}`}
-                  aria-label={`Edit ${section.title}`}
+                  aria-label={t('cv.editSectionAria', { section: section.title })}
                   aria-haspopup="dialog"
                 >
-                  Edit
+                  {t('cv.edit')}
                 </button>
               ) : null}
             </div>
@@ -302,13 +304,10 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
             onKeyDown={handleDialogKeyDown}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h3
-                id={dialogTitleId}
-                className="text-lg font-semibold text-slate-900"
-              >
+              <h3 id={dialogTitleId} className="text-lg font-semibold text-slate-900">
                 {editTarget.kind === 'personal'
-                  ? 'Edit Personal Info'
-                  : `Edit ${activeSectionTitle}`}
+                  ? t('cv.modal.personalTitle')
+                  : t('cv.modal.sectionTitle', { section: activeSectionTitle ?? '' })}
               </h3>
               <button
                 ref={closeButtonRef}
@@ -317,14 +316,14 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 disabled={saving}
                 className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300"
               >
-                Close
+                {t('cv.modal.close')}
               </button>
             </div>
 
             <p id={dialogDescriptionId} className="sr-only">
               {editTarget.kind === 'personal'
-                ? 'Update your personal information and save changes.'
-                : 'Update the selected CV section details and save changes.'}
+                ? t('cv.modal.personalDescription')
+                : t('cv.modal.sectionDescription')}
             </p>
 
             {error ? (
@@ -339,7 +338,9 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
             {editTarget.kind === 'personal' && personalDraft ? (
               <div className="space-y-3">
                 <label className="block text-sm">
-                  <span className="mb-1 block font-semibold text-slate-800">Full name</span>
+                  <span className="mb-1 block font-semibold text-slate-800">
+                    {t('cv.modal.fullName')}
+                  </span>
                   <input
                     ref={firstInputRef}
                     value={personalDraft.fullName}
@@ -352,7 +353,9 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block font-semibold text-slate-800">Role</span>
+                  <span className="mb-1 block font-semibold text-slate-800">
+                    {t('cv.modal.role')}
+                  </span>
                   <input
                     value={personalDraft.role}
                     onChange={(event) =>
@@ -364,7 +367,9 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block font-semibold text-slate-800">Tagline</span>
+                  <span className="mb-1 block font-semibold text-slate-800">
+                    {t('cv.modal.tagline')}
+                  </span>
                   <textarea
                     value={personalDraft.tagline}
                     onChange={(event) =>
@@ -378,7 +383,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 </label>
                 <label className="block text-sm">
                   <span className="mb-1 block font-semibold text-slate-800">
-                    Chips (one per line)
+                    {t('cv.modal.chips')}
                   </span>
                   <textarea
                     value={personalDraft.chipsText}
@@ -398,7 +403,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                     disabled={saving}
                     className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-300"
                   >
-                    Cancel
+                    {t('cv.modal.cancel')}
                   </button>
                   <button
                     type="button"
@@ -406,7 +411,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                     disabled={saving}
                     className="rounded-full bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
                   >
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? t('cv.modal.saving') : t('cv.modal.save')}
                   </button>
                 </div>
               </div>
@@ -415,7 +420,9 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
             {editTarget.kind === 'section' && sectionDraft ? (
               <div className="space-y-3">
                 <label className="block text-sm">
-                  <span className="mb-1 block font-semibold text-slate-800">Summary</span>
+                  <span className="mb-1 block font-semibold text-slate-800">
+                    {t('cv.modal.summary')}
+                  </span>
                   <textarea
                     ref={firstTextareaRef}
                     value={sectionDraft.summary}
@@ -430,7 +437,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 </label>
                 <label className="block text-sm">
                   <span className="mb-1 block font-semibold text-slate-800">
-                    Bullets (one per line)
+                    {t('cv.modal.bullets')}
                   </span>
                   <textarea
                     value={sectionDraft.bulletsText}
@@ -450,7 +457,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                     disabled={saving}
                     className="rounded-full bg-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-300"
                   >
-                    Cancel
+                    {t('cv.modal.cancel')}
                   </button>
                   <button
                     type="button"
@@ -458,7 +465,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                     disabled={saving}
                     className="rounded-full bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-800"
                   >
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? t('cv.modal.saving') : t('cv.modal.save')}
                   </button>
                 </div>
               </div>

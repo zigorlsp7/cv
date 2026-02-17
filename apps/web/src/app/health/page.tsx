@@ -1,4 +1,5 @@
 import { getUiTheme } from "@/lib/architecture-variants";
+import { getTranslator } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ async function getHealth() {
 export default async function HealthPage() {
   const data = await getHealth();
   const theme = getUiTheme();
+  const t = await getTranslator();
 
   return (
     <main
@@ -21,9 +23,11 @@ export default async function HealthPage() {
       <div className="mx-auto max-w-5xl">
         <section className={`rounded-3xl p-8 ${theme.surface}`}>
           <p className={`text-xs font-bold uppercase tracking-[0.16em] ${theme.muted}`}>
-            Runtime Diagnostics
+            {t("health.overline")}
           </p>
-          <h1 className={`mt-2 text-3xl font-semibold ${theme.title}`}>API Health</h1>
+          <h1 className={`mt-2 text-3xl font-semibold ${theme.title}`}>
+            {t("health.title")}
+          </h1>
           <pre
             className={`mt-5 overflow-x-auto rounded-2xl p-4 text-sm ${theme.chipPrimary}`}
           >

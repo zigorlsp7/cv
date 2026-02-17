@@ -141,6 +141,8 @@ services:
       context: ..
       dockerfile: apps/web/Dockerfile
       target: dev
+    env_file:
+      - ../apps/web/.env
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://api:3000
       NEXT_PUBLIC_RUM_ENABLED: "false"
@@ -256,9 +258,19 @@ services:
     command: ["run", "--summary-export", "/artifacts/k6-summary-test.json", "/scripts/health.js"]
     depends_on:
       - api_test
+      
+  tolgee:
+    image: tolgee/tolgee:latest
+    ports:
+      - "8090:8080"
+    volumes:
+      - tolgee-data:/data
+      - ./tolgee/config.yaml:/config.yaml:ro
+    command: ["--config=/config.yaml"]
 
 volumes:
   pgdata:
   pgdata_test:
   grafana-data:
   loki-data:
+  tolgee-data:
