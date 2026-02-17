@@ -379,6 +379,9 @@ jobs:
       - name: Run smoke tests
         run: WEB_BASE_URL=http://localhost:3001 npm run test:smoke -w web
 
+      - name: Run accessibility audits
+        run: WEB_BASE_URL=http://localhost:3001 npm run test:a11y -w web
+
       - name: Compose logs (on failure)
         if: failure()
         run: docker compose -f docker/compose.yml logs --no-color web api

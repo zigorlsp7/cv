@@ -107,6 +107,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     graph.nodes[0]?.id ?? null,
   );
+  const instructionsId = useId().replace(/:/g, '-');
 
   const layerCounts = useMemo(() => countByLayer(graph.nodes), [graph.nodes]);
 
@@ -153,7 +154,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
   return (
     <section className="grid gap-6 lg:grid-cols-[3fr,1.2fr]">
       <div className={theme.surface}>
-        <div className="mb-3 flex flex-wrap gap-2">
+        <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Filter layers">
           {(['all', ...graph.layers] as const).map((layer) => {
             const active = layerFilter === layer;
             const count = layer === 'all' ? graph.nodes.length : layerCounts[layer];
@@ -164,6 +165,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
             return (
               <button
                 key={layer}
+                type="button"
                 onClick={() => {
                   setLayerFilter(layer);
                   const firstVisible =
@@ -179,6 +181,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
                       : firstVisible?.id ?? null,
                   );
                 }}
+                aria-pressed={active}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${
                   active ? chipClass : theme.chipDefault
                 }`}
@@ -189,10 +192,23 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
           })}
         </div>
 
-        <div className={theme.canvas}>
+        <p id={instructionsId} className="sr-only">
+          Use the layer filters, then navigate nodes with Tab. Press Enter or Space to select
+          a node and update the details panel.
+        </p>
+
+        <div
+          className={theme.canvas}
+          role="group"
+          aria-label="Architecture map"
+          aria-describedby={instructionsId}
+        >
           <div className={theme.canvasGlowA} />
           <div className={theme.canvasGlowB} />
-          <svg viewBox="0 0 1160 760" className="relative z-10 w-full">
+          <svg
+            viewBox="0 0 1160 760"
+            className="relative z-10 w-full"
+          >
             <defs>
               <marker
                 id={`arrow-${markerId}`}
@@ -242,6 +258,16 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
                   transform={`translate(${node.x}, ${node.y})`}
                   className="cursor-pointer"
                   onClick={() => setSelectedNodeId(node.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedNodeId(node.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select node ${node.label}`}
+                  aria-pressed={isSelected}
                 >
                   <circle
                     r={isSelected ? 36 : 30}
@@ -269,10 +295,13 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
         </div>
       </div>
 
-      <aside className={theme.panel}>
-        <h3 className={theme.panelTitle}>
+      <section
+        className={theme.panel}
+        aria-labelledby="architecture-node-details"
+      >
+        <h2 className={theme.panelTitle} id="architecture-node-details">
           Node Details
-        </h3>
+        </h2>
         {selectedNode ? (
           <>
             <div>
@@ -299,7 +328,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
                   inboundEdges.map((edge) => (
                     <li key={`in-${edge.from}-${edge.relation}`}>
                       {nodeMap.get(edge.from)?.label}{' '}
-                      <span className="text-zinc-400">({edge.relation})</span>
+                      <span className="text-slate-600">({edge.relation})</span>
                     </li>
                   ))
                 )}
@@ -317,7 +346,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
                   outboundEdges.map((edge) => (
                     <li key={`out-${edge.to}-${edge.relation}`}>
                       {nodeMap.get(edge.to)?.label}{' '}
-                      <span className="text-zinc-400">({edge.relation})</span>
+                      <span className="text-slate-600">({edge.relation})</span>
                     </li>
                   ))
                 )}
@@ -329,9 +358,9 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
         )}
 
         <div className={theme.featureBox}>
-          <p className={theme.panelTitle}>
+          <h3 className={theme.panelTitle}>
             Runtime Feature Flags
-          </p>
+          </h3>
           <div className="mt-2 space-y-1 text-sm">
             {Object.entries(graph.featureFlags).map(([flag, enabled]) => (
               <div key={flag} className="flex items-center justify-between">
@@ -347,7 +376,7 @@ export function ArchitectureMap({ graph }: { graph: ArchitectureGraph }) {
             ))}
           </div>
         </div>
-      </aside>
+      </section>
     </section>
   );
 }

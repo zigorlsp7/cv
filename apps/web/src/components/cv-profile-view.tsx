@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getUiTheme } from '@/lib/architecture-variants';
 import type { CvProfile } from '@/lib/cv-content';
 
@@ -76,9 +76,25 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
   const [sectionDraft, setSectionDraft] = useState<SectionDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const firstInputRef = useRef<HTMLInputElement | null>(null);
+  const firstTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
   const canEdit = true;
   const activeSectionTitle =
     editTarget?.kind === 'section' ? profile.sections[editTarget.index]!.title : null;
+  const dialogTitleId = useMemo(
+    () => (editTarget?.kind === 'personal' ? 'personal-dialog-title' : 'section-dialog-title'),
+    [editTarget?.kind],
+  );
+  const dialogDescriptionId = useMemo(
+    () =>
+      editTarget?.kind === 'personal'
+        ? 'personal-dialog-description'
+        : 'section-dialog-description',
+    [editTarget?.kind],
+  );
 
   const openPersonalModal = () => {
     setError(null);
@@ -111,6 +127,48 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
     setSectionDraft(null);
     setError(null);
   };
+
+  const getFocusableElements = (container: HTMLElement | null) => {
+    if (!container) return [];
+    return Array.from(
+      container.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+  };
+
+  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      closeModal();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = getFocusableElements(dialogRef.current);
+    if (focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (editTarget) {
+      lastFocusedRef.current = document.activeElement as HTMLElement | null;
+      const target =
+        firstInputRef.current ?? firstTextareaRef.current ?? closeButtonRef.current;
+      requestAnimationFrame(() => target?.focus());
+      return;
+    }
+    if (lastFocusedRef.current) {
+      requestAnimationFrame(() => lastFocusedRef.current?.focus());
+    }
+  }, [editTarget]);
 
   const persistProfile = async (nextProfile: CvProfile) => {
     setSaving(true);
@@ -183,6 +241,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 onClick={openPersonalModal}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${theme.chipPrimary}`}
                 aria-label="Edit personal info"
+                aria-haspopup="dialog"
               >
                 Edit
               </button>
@@ -210,6 +269,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                   onClick={() => openSectionModal(index)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold ${theme.chipPrimary}`}
                   aria-label={`Edit ${section.title}`}
+                  aria-haspopup="dialog"
                 >
                   Edit
                 </button>
@@ -232,14 +292,26 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
 
       {editTarget ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/45 px-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dialogTitleId}
+            aria-describedby={dialogDescriptionId}
+            className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            onKeyDown={handleDialogKeyDown}
+          >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold text-slate-900">
+              <h3
+                id={dialogTitleId}
+                className="text-lg font-semibold text-slate-900"
+              >
                 {editTarget.kind === 'personal'
                   ? 'Edit Personal Info'
                   : `Edit ${activeSectionTitle}`}
               </h3>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={closeModal}
                 disabled={saving}
@@ -249,8 +321,17 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
               </button>
             </div>
 
+            <p id={dialogDescriptionId} className="sr-only">
+              {editTarget.kind === 'personal'
+                ? 'Update your personal information and save changes.'
+                : 'Update the selected CV section details and save changes.'}
+            </p>
+
             {error ? (
-              <p className="mb-3 rounded-lg bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700">
+              <p
+                role="alert"
+                className="mb-3 rounded-lg bg-rose-100 px-3 py-2 text-sm font-semibold text-rose-700"
+              >
                 {error}
               </p>
             ) : null}
@@ -260,6 +341,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 <label className="block text-sm">
                   <span className="mb-1 block font-semibold text-slate-800">Full name</span>
                   <input
+                    ref={firstInputRef}
                     value={personalDraft.fullName}
                     onChange={(event) =>
                       setPersonalDraft((prev) =>
@@ -335,6 +417,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
                 <label className="block text-sm">
                   <span className="mb-1 block font-semibold text-slate-800">Summary</span>
                   <textarea
+                    ref={firstTextareaRef}
                     value={sectionDraft.summary}
                     onChange={(event) =>
                       setSectionDraft((prev) =>

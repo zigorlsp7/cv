@@ -14,7 +14,10 @@ export default async function HealthPage() {
   const theme = getUiTheme();
 
   return (
-    <main className={`min-h-[calc(100vh-4rem)] px-6 py-10 ${theme.mainBg}`}>
+    <main
+      id="main-content"
+      className={`min-h-[calc(100vh-4rem)] px-6 py-10 ${theme.mainBg}`}
+    >
       <div className="mx-auto max-w-5xl">
         <section className={`rounded-3xl p-8 ${theme.surface}`}>
           <p className={`text-xs font-bold uppercase tracking-[0.16em] ${theme.muted}`}>
