@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src --max-warnings=0",
+    "lint": "node ../../node_modules/eslint/bin/eslint.js src --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "i18n:pull": "node ./scripts/i18n-pull.mjs",
     "test:smoke": "playwright test -c playwright.config.mjs",
