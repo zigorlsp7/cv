@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getUiTheme } from "@/lib/architecture-variants";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { UserAuthMenu } from "@/components/user-auth-menu";
 import { useI18n } from "@/i18n/client";
 const NAV_ITEMS = [
   { href: "/", labelKey: "nav.cv" },
@@ -51,7 +52,10 @@ export function TopNav() {
             })}
           </ul>
         </nav>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <UserAuthMenu />
+        </div>
       </div>
     </header>
   );

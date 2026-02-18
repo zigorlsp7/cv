@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isAdminSession } from '@/lib/auth-session';
 
 function getApiBase(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -6,6 +7,13 @@ function getApiBase(): string {
     throw new Error('NEXT_PUBLIC_API_BASE_URL is required');
   }
   return base;
+}
+
+function getAdminApiToken(): string {
+  const explicit = process.env.ADMIN_API_TOKEN?.trim();
+  if (explicit) return explicit;
+  if (process.env.NODE_ENV !== 'production') return 'local-admin-token';
+  throw new Error('ADMIN_API_TOKEN is required');
 }
 
 export async function GET() {
@@ -31,11 +39,25 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const isAdmin = await isAdminSession();
+  if (!isAdmin) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Admin authentication required',
+      },
+      { status: 401 },
+    );
+  }
+
   const body = await request.text();
   try {
     const response = await fetch(`${getApiBase()}/v1/cv`, {
       method: 'PUT',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'x-admin-token': getAdminApiToken(),
+      },
       body,
       cache: 'no-store',
     });

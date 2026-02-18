@@ -69,10 +69,17 @@ function parseProfile(payload: Envelope<CvProfile> | CvProfile): CvProfile {
   return cloneProfile(data);
 }
 
-export function CvProfileView({ initialProfile }: { initialProfile: CvProfile }) {
+export function CvProfileView({
+  initialProfile,
+  initialCanEdit,
+}: {
+  initialProfile: CvProfile;
+  initialCanEdit: boolean;
+}) {
   const theme = getUiTheme();
   const { t } = useI18n();
   const [profile, setProfile] = useState<CvProfile>(() => cloneProfile(initialProfile));
+  const [canEdit, setCanEdit] = useState(initialCanEdit);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [personalDraft, setPersonalDraft] = useState<PersonalDraft | null>(null);
   const [sectionDraft, setSectionDraft] = useState<SectionDraft | null>(null);
@@ -83,7 +90,6 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
   const firstTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
-  const canEdit = true;
   const activeSectionTitle =
     editTarget?.kind === 'section' ? profile.sections[editTarget.index]!.title : null;
   const dialogTitleId = useMemo(
@@ -99,6 +105,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
   );
 
   const openPersonalModal = () => {
+    if (!canEdit) return;
     setError(null);
     setSectionDraft(null);
     setPersonalDraft({
@@ -111,6 +118,7 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
   };
 
   const openSectionModal = (index: number) => {
+    if (!canEdit) return;
     const section = profile.sections[index];
     if (!section) return;
     setError(null);
@@ -172,6 +180,15 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
     }
   }, [editTarget]);
 
+  useEffect(() => {
+    setCanEdit(initialCanEdit);
+    if (!initialCanEdit) {
+      setEditTarget(null);
+      setPersonalDraft(null);
+      setSectionDraft(null);
+    }
+  }, [initialCanEdit]);
+
   const persistProfile = async (nextProfile: CvProfile) => {
     setSaving(true);
     setError(null);
@@ -181,6 +198,12 @@ export function CvProfileView({ initialProfile }: { initialProfile: CvProfile })
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(toPayload(nextProfile)),
       });
+
+      if (response.status === 401 || response.status === 403) {
+        setCanEdit(false);
+        closeModal();
+        throw new Error('Admin session expired. Sign in again.');
+      }
 
       if (!response.ok) {
         throw new Error(`Save failed: ${response.status}`);

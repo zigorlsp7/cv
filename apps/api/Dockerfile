@@ -20,6 +20,9 @@ RUN npm ci -w @cv/api --omit=dev
 # ---- dev ----
 FROM base AS dev
 ENV NODE_ENV=development
+RUN apk add --no-cache bash curl \
+  && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash \
+  && apk add --no-cache infisical
 COPY --from=deps /app/node_modules /app/node_modules
 COPY --from=deps /app/apps/api/node_modules /app/apps/api/node_modules
 COPY apps/api /app/apps/api
