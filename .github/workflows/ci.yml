@@ -66,12 +66,13 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=8.24.2
+          ARCHIVE="gitleaks_${VERSION}_linux_x64.tar.gz"
           mkdir -p artifacts
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${ARCHIVE}" -o "/tmp/${ARCHIVE}"
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_checksums.txt" -o /tmp/gitleaks_checksums.txt
-          grep "gitleaks_${VERSION}_linux_x64.tar.gz" /tmp/gitleaks_checksums.txt > /tmp/gitleaks_checksum_line.txt
+          grep "${ARCHIVE}" /tmp/gitleaks_checksums.txt > /tmp/gitleaks_checksum_line.txt
           (cd /tmp && sha256sum -c /tmp/gitleaks_checksum_line.txt)
-          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          tar -xzf "/tmp/${ARCHIVE}" -C /tmp gitleaks
           /tmp/gitleaks detect --source . --no-git --redact --config .gitleaks.toml --report-format json --report-path artifacts/gitleaks-report.json
 
       - name: Upload gitleaks report
