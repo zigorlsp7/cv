@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.5...cv-web-v0.1.6) (2026-02-18)
+
+
+### Features
+
+* add authentication with Google SSO and auth for edition ([#38](https://github.com/zigorlsp7/cv-web/issues/38)) ([3650505](https://github.com/zigorlsp7/cv-web/commit/365050572467dcb7f143363b70fda21d3af57f90))
+
 ## [0.1.5](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.4...cv-web-v0.1.5) (2026-02-17)
 
 
