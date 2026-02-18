@@ -1,5 +1,5 @@
 # ---- base ----
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /workspace
 
 # ---- deps ----
@@ -33,7 +33,7 @@ WORKDIR /workspace/apps/web
 RUN npm run build
 
 # ---- prod ----
-FROM node:20-alpine AS prod
+FROM node:25-alpine AS prod
 WORKDIR /app/apps/web
 ENV NODE_ENV=production
 ENV PORT=3001
