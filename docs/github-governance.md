@@ -9,18 +9,17 @@ Required checks before merge:
 - `CI / Integration + E2E + k6`
 - `CI / Security + Supply Chain`
 - `CI / Web Smoke (Playwright)`
+- `CodeQL / Analyze (javascript-typescript)`
+- `Commitlint / pr-title`
 
-Apply policy via script:
+Apply policy in GitHub:
 
-```bash
-./scripts/apply-branch-protection.sh main
-```
+- Repository `Settings` -> `Branches`
+- Edit the protection rule for `main` with the required checks above
 
 Prerequisites:
 
-- GitHub CLI installed (`gh`)
-- Authenticated with repo admin permissions:
-  - `gh auth login`
+- Repo admin access to edit branch protection rules
 
 ## Secrets scanning gate
 

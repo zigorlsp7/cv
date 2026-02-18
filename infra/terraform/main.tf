@@ -4,6 +4,7 @@ data "aws_availability_zones" "available" {
 
 locals {
   name_prefix = "${var.project}-${var.environment}"
+  is_prod     = var.environment == "prod"
   tags = {
     Project     = var.project
     Environment = var.environment
@@ -81,7 +82,7 @@ resource "aws_security_group" "ecs_service" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.ecs_allowed_ingress_cidrs
   }
 
   egress {
@@ -134,26 +135,181 @@ resource "aws_db_instance" "postgres" {
   password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = true
+  backup_retention_period = local.is_prod ? 7 : 1
+  deletion_protection     = local.is_prod
+  skip_final_snapshot     = false
+  final_snapshot_identifier = "${local.name_prefix}-postgres-final"
+  storage_encrypted       = true
   publicly_accessible    = false
   tags                   = local.tags
 }
 
 resource "aws_ecr_repository" "api" {
   name                 = "${local.name_prefix}-api"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
   tags                 = local.tags
 }
 
 resource "aws_ecr_repository" "web" {
   name                 = "${local.name_prefix}-web"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
   tags                 = local.tags
 }
 
 resource "aws_ecs_cluster" "main" {
   name = "${local.name_prefix}-cluster"
   tags = local.tags
+}
+
+resource "aws_iam_role" "ecs_execution" {
+  name = "${local.name_prefix}-ecs-execution-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_managed" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role" "ecs_task" {
+  name = "${local.name_prefix}-ecs-task-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_log_group" "ecs_api" {
+  name              = "/ecs/${local.name_prefix}/api"
+  retention_in_days = 30
+  tags              = local.tags
+}
+
+resource "aws_cloudwatch_log_group" "ecs_web" {
+  name              = "/ecs/${local.name_prefix}/web"
+  retention_in_days = 30
+  tags              = local.tags
+}
+
+resource "aws_ecs_task_definition" "api" {
+  family                   = "${local.name_prefix}-api"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+  container_definitions = jsonencode([
+    {
+      name      = var.api_container_name
+      image     = "${aws_ecr_repository.api.repository_url}:${var.api_image_tag}"
+      essential = true
+      portMappings = [
+        {
+          containerPort = var.api_container_port
+          hostPort      = var.api_container_port
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_api.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+  tags = local.tags
+}
+
+resource "aws_ecs_task_definition" "web" {
+  family                   = "${local.name_prefix}-web"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+  container_definitions = jsonencode([
+    {
+      name      = var.web_container_name
+      image     = "${aws_ecr_repository.web.repository_url}:${var.web_image_tag}"
+      essential = true
+      portMappings = [
+        {
+          containerPort = var.web_container_port
+          hostPort      = var.web_container_port
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_web.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+  tags = local.tags
+}
+
+resource "aws_ecs_service" "api" {
+  name            = "${local.name_prefix}-api"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.api.arn
+  desired_count   = var.ecs_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+    security_groups  = [aws_security_group.ecs_service.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.ecs_execution_managed]
+  tags       = local.tags
+}
+
+resource "aws_ecs_service" "web" {
+  name            = "${local.name_prefix}-web"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.web.arn
+  desired_count   = var.ecs_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+    security_groups  = [aws_security_group.ecs_service.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.ecs_execution_managed]
+  tags       = local.tags
 }
 
 resource "aws_secretsmanager_secret" "db_credentials" {
@@ -185,4 +341,4 @@ resource "aws_acm_certificate" "app" {
   tags              = local.tags
 }
 
-# TODO(P2): Add ALB, ECS task definition/service, DNS records, and optional CloudFront distribution.
+# TODO(P2): Add ALB, Route53 records, WAF rules, and optional CloudFront distribution.

@@ -304,7 +304,6 @@ Implemented:
 Core files:
 
 - `docs/github-governance.md`
-- `scripts/apply-branch-protection.sh`
 - `.github/workflows/commitlint.yml`
 - `.github/workflows/release-please.yml`
 - `.github/workflows/codeql.yml`
@@ -553,7 +552,7 @@ Goal: verify CI/CD gates are enforcing the intended contract.
 
 ## 7.3 Branch protection policy check
 
-1. Run `./scripts/apply-branch-protection.sh main`.
+1. Open repository `Settings` -> `Branches`.
 2. Confirm required checks exactly match `docs/github-governance.md`.
 
 ## 7.4 CodeQL check

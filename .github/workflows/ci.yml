@@ -5,6 +5,13 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
   HUSKY: "0"
 
@@ -15,9 +22,9 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version: 20
           cache: npm
@@ -35,40 +42,11 @@ jobs:
         run: npm run build --workspaces
 
       - name: Unit tests with coverage (api)
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          LOG_LEVEL: info
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: app
-          DB_PASSWORD: app
-          DB_NAME: cv_test
-          CORS_ORIGINS: http://localhost:3001
-          CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
-          CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
-          CORS_EXPOSED_HEADERS: X-Request-Id
-          CORS_CREDENTIALS: "true"
-          CORS_MAX_AGE_SECONDS: 600
-          RATE_LIMIT_TTL_MS: 60000
-          RATE_LIMIT_LIMIT: 100
-          TRUST_PROXY: "false"
-          REQUEST_TIMEOUT_MS: 30000
-          HEADERS_TIMEOUT_MS: 30000
-          KEEP_ALIVE_TIMEOUT_MS: 5000
-          REQUEST_BODY_LIMIT: 1mb
-          OTEL_SERVICE_NAME: cv-api-test
-          OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
-          OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-          OTEL_TRACES_EXPORTER: otlp
-          OTEL_METRICS_EXPORTER: none
-          OTEL_LOGS_EXPORTER: none
-          FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
         run: npm run test:cov -w @cv/api -- --watchman=false --ci
 
       - name: Upload api coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: api-coverage
           path: apps/api/coverage
@@ -80,7 +58,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
@@ -90,12 +68,15 @@ jobs:
           VERSION=8.24.2
           mkdir -p artifacts
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_checksums.txt" -o /tmp/gitleaks_checksums.txt
+          grep "gitleaks_${VERSION}_linux_x64.tar.gz" /tmp/gitleaks_checksums.txt > /tmp/gitleaks_checksum_line.txt
+          (cd /tmp && sha256sum -c /tmp/gitleaks_checksum_line.txt)
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           /tmp/gitleaks detect --source . --no-git --redact --config .gitleaks.toml --report-format json --report-path artifacts/gitleaks-report.json
 
       - name: Upload gitleaks report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: gitleaks-report
           path: artifacts/gitleaks-report.json
@@ -108,9 +89,9 @@ jobs:
     needs: quality
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version: 20
           cache: npm
@@ -118,20 +99,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Prepare CI env
-        run: |
-          cat > docker/.env <<'EOF'
-          TOLGEE_API_KEY=${{ secrets.TOLGEE_API_KEY }}
-          EOF
-          cat > apps/web/.env <<'EOF'
-          NEXT_PUBLIC_API_BASE_URL=http://api:3000
-          NEXT_PUBLIC_RUM_ENABLED=false
-          NEXT_PUBLIC_RUM_ENDPOINT=http://api:3000/v1/rum/events
-          I18N_SOURCE=local
-          EOF
-
       - name: Compose up (postgres_test + api_test)
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test
 
       - name: Wait for API (test)
         run: |
@@ -144,109 +113,22 @@ jobs:
             sleep 2
             i=$((i+1))
           done
-          docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color api_test
+          docker compose -f docker/compose.yml -f docker/compose.ci.yml logs --no-color api_test
           exit 1
 
       - name: Run migrations (test DB)
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          LOG_LEVEL: info
-          DB_HOST: localhost
-          DB_PORT: 5433
-          DB_USER: app
-          DB_PASSWORD: app
-          DB_NAME: cv_test
-          CORS_ORIGINS: http://localhost:3001
-          CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
-          CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
-          CORS_EXPOSED_HEADERS: X-Request-Id
-          CORS_CREDENTIALS: "true"
-          CORS_MAX_AGE_SECONDS: 600
-          RATE_LIMIT_TTL_MS: 60000
-          RATE_LIMIT_LIMIT: 100
-          TRUST_PROXY: "false"
-          REQUEST_TIMEOUT_MS: 30000
-          HEADERS_TIMEOUT_MS: 30000
-          KEEP_ALIVE_TIMEOUT_MS: 5000
-          REQUEST_BODY_LIMIT: 1mb
-          OTEL_SERVICE_NAME: cv-api-test
-          OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
-          OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-          OTEL_TRACES_EXPORTER: otlp
-          OTEL_METRICS_EXPORTER: none
-          OTEL_LOGS_EXPORTER: none
-          FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
-        run: npm run migration:run -w @cv/api
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
 
       - name: Integration tests (api)
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          LOG_LEVEL: info
-          DB_HOST: localhost
-          DB_PORT: 5433
-          DB_USER: app
-          DB_PASSWORD: app
-          DB_NAME: cv_test
-          CORS_ORIGINS: http://localhost:3001
-          CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
-          CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
-          CORS_EXPOSED_HEADERS: X-Request-Id
-          CORS_CREDENTIALS: "true"
-          CORS_MAX_AGE_SECONDS: 600
-          RATE_LIMIT_TTL_MS: 60000
-          RATE_LIMIT_LIMIT: 100
-          TRUST_PROXY: "false"
-          REQUEST_TIMEOUT_MS: 30000
-          HEADERS_TIMEOUT_MS: 30000
-          KEEP_ALIVE_TIMEOUT_MS: 5000
-          REQUEST_BODY_LIMIT: 1mb
-          OTEL_SERVICE_NAME: cv-api-test
-          OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
-          OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-          OTEL_TRACES_EXPORTER: otlp
-          OTEL_METRICS_EXPORTER: none
-          OTEL_LOGS_EXPORTER: none
-          FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
         run: npm run test:int -w @cv/api -- --watchman=false --detectOpenHandles
 
       - name: E2E tests (api)
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          LOG_LEVEL: info
-          DB_HOST: localhost
-          DB_PORT: 5433
-          DB_USER: app
-          DB_PASSWORD: app
-          DB_NAME: cv_test
-          CORS_ORIGINS: http://localhost:3001
-          CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
-          CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
-          CORS_EXPOSED_HEADERS: X-Request-Id
-          CORS_CREDENTIALS: "true"
-          CORS_MAX_AGE_SECONDS: 600
-          RATE_LIMIT_TTL_MS: 60000
-          RATE_LIMIT_LIMIT: 100
-          TRUST_PROXY: "false"
-          REQUEST_TIMEOUT_MS: 30000
-          HEADERS_TIMEOUT_MS: 30000
-          KEEP_ALIVE_TIMEOUT_MS: 5000
-          REQUEST_BODY_LIMIT: 1mb
-          OTEL_SERVICE_NAME: cv-api-test
-          OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
-          OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-          OTEL_TRACES_EXPORTER: otlp
-          OTEL_METRICS_EXPORTER: none
-          OTEL_LOGS_EXPORTER: none
-          FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
         run: npm run test:e2e -w @cv/api -- --watchman=false --detectOpenHandles
 
       - name: Export OpenAPI spec (api_test)
         run: |
           mkdir -p artifacts
-          docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test sh -lc 'wget -qO- http://localhost:3000/docs-json' > artifacts/openapi.test.json
+          docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test sh -lc 'wget -qO- http://localhost:3000/docs-json' > artifacts/openapi.test.json
 
       - name: Regenerate web API contract
         run: npm run contract:gen:web -- artifacts/openapi.test.json apps/web/src/lib/api/generated.ts
@@ -258,11 +140,11 @@ jobs:
         run: COMPOSE_FILES="docker/compose.yml docker/compose.ci.yml" ./scripts/db-backup-restore-drill.sh
 
       - name: k6 smoke (test)
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up --abort-on-container-exit --exit-code-from k6_test k6_test
 
       - name: Upload k6 summary
         if: ${{ always() && hashFiles('artifacts/k6-summary-test.json') != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: k6-summary-test
           path: artifacts/k6-summary-test.json
@@ -270,11 +152,11 @@ jobs:
 
       - name: Compose logs (on failure)
         if: failure()
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml logs --no-color
 
       - name: Compose down
         if: always()
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml down -v
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml down -v
 
   security-supply-chain:
     name: Security + Supply Chain
@@ -283,9 +165,9 @@ jobs:
     needs: quality
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version: 20
           cache: npm
@@ -302,7 +184,7 @@ jobs:
           docker build -f apps/web/Dockerfile --target prod -t cv-web:ci .
 
       - name: Trivy scan (api image)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
         with:
           image-ref: cv-api:ci
           format: table
@@ -312,7 +194,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Trivy scan (web image)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
         with:
           image-ref: cv-web:ci
           format: table
@@ -325,14 +207,14 @@ jobs:
         run: mkdir -p artifacts
 
       - name: Generate SBOM (api image)
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@a930d0ac434e3182448fe678398ba5713717112a # v0
         with:
           image: cv-api:ci
           format: spdx-json
           output-file: artifacts/sbom-api.spdx.json
 
       - name: Generate SBOM (web image)
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@a930d0ac434e3182448fe678398ba5713717112a # v0
         with:
           image: cv-web:ci
           format: spdx-json
@@ -340,7 +222,7 @@ jobs:
 
       - name: Upload SBOM artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sbom
           path: |
@@ -355,9 +237,9 @@ jobs:
     needs: quality
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version: 20
           cache: npm
@@ -368,23 +250,11 @@ jobs:
       - name: Install Playwright browser
         run: npm exec -w web playwright install --with-deps chromium
 
-      - name: Prepare CI env
-        run: |
-          cat > docker/.env <<'EOF'
-          TOLGEE_API_KEY=${{ secrets.TOLGEE_API_KEY }}
-          EOF
-          cat > apps/web/.env <<'EOF'
-          NEXT_PUBLIC_API_BASE_URL=http://api_test:3000
-          NEXT_PUBLIC_RUM_ENABLED=false
-          NEXT_PUBLIC_RUM_ENDPOINT=http://api_test:3000/v1/rum/events
-          I18N_SOURCE=local
-          EOF
-
       - name: Compose up (postgres_test + api_test + web)
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test web
+        run: NEXT_PUBLIC_API_BASE_URL=http://api_test:3000 NEXT_PUBLIC_RUM_ENABLED=false NEXT_PUBLIC_RUM_ENDPOINT=http://api_test:3000/v1/rum/events I18N_SOURCE=local docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test web
 
       - name: Run API migrations
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
 
       - name: Wait for web
         run: |
@@ -397,7 +267,7 @@ jobs:
             sleep 2
             i=$((i+1))
           done
-          docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color web api
+          docker compose -f docker/compose.yml -f docker/compose.ci.yml logs --no-color web api
           exit 1
 
       - name: Run smoke tests
@@ -408,8 +278,8 @@ jobs:
 
       - name: Compose logs (on failure)
         if: failure()
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml logs --no-color web api
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml logs --no-color web api
 
       - name: Compose down
         if: always()
-        run: docker compose --env-file docker/.env -f docker/compose.yml -f docker/compose.ci.yml down -v
+        run: docker compose -f docker/compose.yml -f docker/compose.ci.yml down -v

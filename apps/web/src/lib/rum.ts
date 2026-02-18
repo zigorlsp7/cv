@@ -22,17 +22,32 @@ function isRumEnabled(): boolean {
 
 function resolveRumEndpoint(): string {
   const explicit = process.env.NEXT_PUBLIC_RUM_ENDPOINT;
-  if (!explicit || explicit.trim().length === 0) {
-    throw new Error("NEXT_PUBLIC_RUM_ENDPOINT is required");
+  if (explicit && explicit.trim().length > 0) {
+    return explicit.trim();
   }
-  return explicit.trim();
+
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base || base.trim().length === 0) {
+    throw new Error("NEXT_PUBLIC_RUM_ENDPOINT or NEXT_PUBLIC_API_BASE_URL is required");
+  }
+  return `${base.trim().replace(/\/$/, "")}/v1/rum/events`;
+}
+
+function resolveReleaseTag(): string | undefined {
+  const release = process.env.NEXT_PUBLIC_RELEASE;
+  if (!release || release.trim().length === 0) {
+    return undefined;
+  }
+  return release.trim();
 }
 
 function buildRumPayload(event: RumEvent): string {
+  const release = event.release ?? resolveReleaseTag();
   return JSON.stringify({
     events: [
       {
         ...event,
+        ...(release ? { release } : {}),
       },
     ],
   });

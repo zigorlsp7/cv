@@ -6,10 +6,8 @@ useDefault = true
 [[allowlists]]
 description = "Allow sample/local alert env templates"
 paths = [
-  '''(^|/)\.env\.alerts\.example$''',
   '''(^|/)docker/alertmanager\.email\.tpl\.yml$''',
   '''(^|/)docker/alertmanager\.prod\.yml$''',
-  '''(^|/)scripts/enable-email-alerts\.sh$''',
 ]
 
 [[allowlists]]

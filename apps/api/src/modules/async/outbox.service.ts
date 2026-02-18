@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { LessThanOrEqual, Repository } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { OutboxEvent, OutboxStatus } from './entities/outbox-event.entity';
 
 type EnqueueOutboxEventInput = {
@@ -62,7 +63,7 @@ export class OutboxService {
   async markFailed(id: string, error: string, retryAt?: Date): Promise<void> {
     const event = await this.outboxRepo.findOneByOrFail({ id });
     const nextStatus: OutboxStatus = retryAt ? 'pending' : 'failed';
-    const updateData: Partial<OutboxEvent> = {
+    const updateData: QueryDeepPartialEntity<OutboxEvent> = {
       status: nextStatus,
       attempts: event.attempts + 1,
       lastError: error,

@@ -17,13 +17,15 @@ The loader chooses env file by `NODE_ENV`:
 - `test` -> `apps/api/.env.test`
 - `development` / `production` -> `apps/api/.env`
 
+`NODE_ENV` must already exist in process env (startup fails before file loading if it is missing).
+
 System environment variables still take precedence over file values.
 
 ## Variables
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
-| `NODE_ENV` | no | `development` | Runtime mode (`development`, `test`, `production`) |
+| `NODE_ENV` | yes | - | Runtime mode (`development`, `test`, `production`) |
 | `PORT` | no | `3000` | API listen port |
 | `LOG_LEVEL` | no | `info` | Pino log level |
 | `DB_HOST` | yes | - | Postgres host |
@@ -46,10 +48,6 @@ System environment variables still take precedence over file values.
 | `REQUEST_BODY_LIMIT` | no | `1mb` | JSON/urlencoded body max size |
 | `OTEL_SERVICE_NAME` | no | `cv-api` | OpenTelemetry service name |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | no | `http://localhost:4318` | OTLP collector endpoint |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | no | `http/protobuf` | OTLP protocol |
-| `OTEL_TRACES_EXPORTER` | no | `otlp` | Traces exporter setting |
-| `OTEL_METRICS_EXPORTER` | no | `none` | Metrics exporter setting |
-| `OTEL_LOGS_EXPORTER` | no | `none` | Logs exporter setting |
 | `FEATURE_FLAGS` | no | empty | Comma-separated feature flags (example: `swagger_docs=true,rum_ingest=true`) |
 
 ## Validation rules

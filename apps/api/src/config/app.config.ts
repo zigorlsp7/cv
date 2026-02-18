@@ -44,10 +44,6 @@ export type AppConfig = {
   otel: {
     serviceName: string;
     endpoint: string;
-    protocol: 'http/protobuf' | 'grpc';
-    tracesExporter: string;
-    metricsExporter: string;
-    logsExporter: string;
   };
   features: Record<string, boolean>;
 };
@@ -206,10 +202,6 @@ const envSchema = z
 
     OTEL_SERVICE_NAME: z.string().min(1),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url(),
-    OTEL_EXPORTER_OTLP_PROTOCOL: z.enum(['http/protobuf', 'grpc']),
-    OTEL_TRACES_EXPORTER: z.string(),
-    OTEL_METRICS_EXPORTER: z.string(),
-    OTEL_LOGS_EXPORTER: z.string(),
 
     FEATURE_FLAGS: z.string(),
   })
@@ -352,10 +344,6 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
     otel: {
       serviceName: raw.OTEL_SERVICE_NAME,
       endpoint: raw.OTEL_EXPORTER_OTLP_ENDPOINT,
-      protocol: raw.OTEL_EXPORTER_OTLP_PROTOCOL,
-      tracesExporter: raw.OTEL_TRACES_EXPORTER,
-      metricsExporter: raw.OTEL_METRICS_EXPORTER,
-      logsExporter: raw.OTEL_LOGS_EXPORTER,
     },
     features: parsedFeatureFlags,
   };

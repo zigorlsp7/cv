@@ -10,7 +10,7 @@ fi
 
 # Precommit should only scan staged files to avoid flagging ignored/local-only secrets.
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git diff --cached --name-only -z | xargs -0 -I {} sh -c 'test -f "$1" && cat "$1"' _ {} | \
+  git diff --cached --name-only -z | xargs -0 -I {} sh -c 'if [ -f "$1" ]; then cat "$1"; fi' _ {} | \
     gitleaks detect --pipe --redact --config .gitleaks.toml
 else
   gitleaks detect --source . --redact --config .gitleaks.toml

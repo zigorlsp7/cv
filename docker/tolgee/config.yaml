@@ -5,6 +5,6 @@ tolgee:
   front-end-url: http://localhost:8090
   authentication:
     enabled: true
-    initial-username: admin
-    initial-password: admin
-    jwt-secret: change-me
+    initial-username: ${TOLGEE_INITIAL_USERNAME:cv_admin}
+    initial-password: ${TOLGEE_INITIAL_PASSWORD:change-this-tolgee-password}
+    jwt-secret: ${TOLGEE_JWT_SECRET:change-this-tolgee-jwt-secret}

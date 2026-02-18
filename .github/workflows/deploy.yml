@@ -23,7 +23,7 @@ jobs:
     environment: ${{ inputs.environment }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -50,6 +50,21 @@ jobs:
         run: |
           docker build -f apps/web/Dockerfile --target prod -t "$REGISTRY/$REPOSITORY:$IMAGE_TAG" .
           docker push "$REGISTRY/$REPOSITORY:$IMAGE_TAG"
+
+      - name: Export image URIs
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          API_REPOSITORY: ${{ vars.ECR_API_REPOSITORY }}
+          WEB_REPOSITORY: ${{ vars.ECR_WEB_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "api_image=${REGISTRY}/${API_REPOSITORY}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "web_image=${REGISTRY}/${WEB_REPOSITORY}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+        id: image_uris
+
+    outputs:
+      api_image: ${{ steps.image_uris.outputs.api_image }}
+      web_image: ${{ steps.image_uris.outputs.web_image }}
 
   deploy-ecs:
     name: Deploy to ECS
@@ -81,19 +96,109 @@ jobs:
             --output text)"
           test "$exit_code" = "0"
 
-      - name: Trigger new deployment (API service)
+      - name: Deploy API task definition revision
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER_NAME }}
+          SERVICE: ${{ vars.ECS_API_SERVICE_NAME }}
+          CONTAINER: ${{ vars.ECS_API_CONTAINER_NAME }}
+          IMAGE_URI: ${{ needs.build-and-push.outputs.api_image }}
         run: |
+          if [ -z "$CONTAINER" ]; then
+            echo "ECS_API_CONTAINER_NAME repository variable is required" >&2
+            exit 1
+          fi
+
+          current_td_arn="$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+
+          aws ecs describe-task-definition \
+            --task-definition "$current_td_arn" \
+            --query 'taskDefinition' \
+            --output json > /tmp/api-td.json
+
+          jq --arg image "$IMAGE_URI" --arg container "$CONTAINER" '
+            .containerDefinitions |= map(
+              if .name == $container then .image = $image else . end
+            )
+            | del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ' /tmp/api-td.json > /tmp/api-td-updated.json
+
+          new_td_arn="$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/api-td-updated.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
+
           aws ecs update-service \
-            --cluster "${{ vars.ECS_CLUSTER_NAME }}" \
-            --service "${{ vars.ECS_API_SERVICE_NAME }}" \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --task-definition "$new_td_arn" \
             --force-new-deployment
 
-      - name: Trigger new deployment (Web service)
+      - name: Deploy Web task definition revision
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER_NAME }}
+          SERVICE: ${{ vars.ECS_WEB_SERVICE_NAME }}
+          CONTAINER: ${{ vars.ECS_WEB_CONTAINER_NAME }}
+          IMAGE_URI: ${{ needs.build-and-push.outputs.web_image }}
         run: |
+          if [ -z "$CONTAINER" ]; then
+            echo "ECS_WEB_CONTAINER_NAME repository variable is required" >&2
+            exit 1
+          fi
+
+          current_td_arn="$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+
+          aws ecs describe-task-definition \
+            --task-definition "$current_td_arn" \
+            --query 'taskDefinition' \
+            --output json > /tmp/web-td.json
+
+          jq --arg image "$IMAGE_URI" --arg container "$CONTAINER" '
+            .containerDefinitions |= map(
+              if .name == $container then .image = $image else . end
+            )
+            | del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ' /tmp/web-td.json > /tmp/web-td-updated.json
+
+          new_td_arn="$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/web-td-updated.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
+
           aws ecs update-service \
-            --cluster "${{ vars.ECS_CLUSTER_NAME }}" \
-            --service "${{ vars.ECS_WEB_SERVICE_NAME }}" \
+            --cluster "$CLUSTER" \
+            --service "$SERVICE" \
+            --task-definition "$new_td_arn" \
             --force-new-deployment
+
+      - name: Wait for ECS services to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${{ vars.ECS_CLUSTER_NAME }}" \
+            --services "${{ vars.ECS_API_SERVICE_NAME }}" "${{ vars.ECS_WEB_SERVICE_NAME }}"
 
   post-deploy-smoke:
     name: Post-deploy Smoke

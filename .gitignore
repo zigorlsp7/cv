@@ -4,8 +4,8 @@ node_modules/
 # env
 .env
 .env.*
-.env.alerts
-!.env.alerts.example
+!apps/api/.env.test
+docker/.env.local
 
 # builds
 dist/

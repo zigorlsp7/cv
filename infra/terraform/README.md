@@ -32,3 +32,4 @@ terraform plan -var-file=environments/dev.tfvars.example
 - This skeleton favors ECS Fargate. Lambda container can be added as an alternative module.
 - Store DB credentials in Secrets Manager and inject to ECS task definitions.
 - Use ACM cert + ALB (and optional CloudFront) for TLS/domain.
+- ECS services are provisioned with `bootstrap` image tags by default; push images and set `api_image_tag`/`web_image_tag` before production rollout.

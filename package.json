@@ -2,6 +2,10 @@
   "name": "cv-web",
   "private": true,
   "version": "0.1.5",
+  "engines": {
+    "node": ">=20.19.0 <21",
+    "npm": ">=10"
+  },
   "workspaces": [
     "apps/*"
   ],
@@ -18,7 +22,7 @@
     "test:secrets:gitleaks": "./scripts/precommit-gitleaks.sh",
     "ci:integration:local": "./scripts/precommit-integration-e2e.sh",
     "ci:quality:local": "npm run lint && npm run typecheck && npm run build && npm run test:cov:api",
-    "precommit:checks": "npm run test:secrets:gitleaks && npm run ci:quality:local && npm run ci:integration:local && npm run test:a11y:web && WEB_BASE_URL=http://localhost:3001 npm run test:smoke -w web",
+    "precommit:checks": "npm run test:secrets:gitleaks && npm run ci:quality:local && npm run ci:integration:local && WEB_BASE_URL=http://localhost:3001 npm run test:smoke -w web && npm run test:a11y:web",
     "audit": "npm audit --audit-level=high",
     "contract:gen:web": "node ./scripts/generate-api-contract.mjs"
   },

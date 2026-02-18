@@ -19,7 +19,7 @@ Access points:
 
 - Prometheus: `http://localhost:9090`
 - Alertmanager: `http://localhost:9093`
-- Grafana: `http://localhost:3002` (`admin` / `admin`)
+- Grafana: `http://localhost:3002` (`cv_admin` / `change-this-admin-password` by default, override with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`)
 - Jaeger: `http://localhost:16686`
 
 ## Alert wiring
@@ -37,16 +37,16 @@ Local compose defaults to `docker/alertmanager.yml` (local webhook receiver).
 
 ### Quick setup: email to Gmail
 
-This repo includes a ready script for email-only alerting:
-
-1. Run:
-   - `./scripts/enable-email-alerts.sh`
-2. If prompted, edit `.env.alerts` and set:
-   - `SMTP_AUTH_PASSWORD` to your Gmail App Password
-3. Re-run:
-   - `./scripts/enable-email-alerts.sh`
-
-That renders `docker/alertmanager.yml` from `docker/alertmanager.email.tpl.yml` and restarts Alertmanager.
+1. Export required env vars in your shell:
+   - `export SMTP_SMARTHOST=smtp.gmail.com:587`
+   - `export SMTP_FROM=your-alerts@example.com`
+   - `export SMTP_AUTH_USERNAME=your-account@example.com`
+   - `export SMTP_AUTH_PASSWORD=your-gmail-app-password`
+   - `export ALERT_EMAIL_TO=you@example.com`
+2. Render Alertmanager config:
+   - `envsubst < docker/alertmanager.email.tpl.yml > docker/alertmanager.yml`
+3. Restart Alertmanager:
+   - `docker compose -f docker/compose.yml up -d alertmanager`
 
 ### Full setup: Slack/PagerDuty/Email
 

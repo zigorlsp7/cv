@@ -27,8 +27,9 @@ The UI locale is stored in the `cv-language` cookie and can be changed from the 
 1. Start Tolgee:
    - `docker compose -f docker/compose.yml up -d tolgee`
 2. Open `http://localhost:8090` and sign in with:
-   - user: `admin`
-   - pass: `admin`
+   - user: `cv_admin` (default from `docker/tolgee/config.yaml`)
+   - pass: `change-this-tolgee-password` (default from `docker/tolgee/config.yaml`)
+   - For real usage, set `TOLGEE_INITIAL_USERNAME`, `TOLGEE_INITIAL_PASSWORD`, and `TOLGEE_JWT_SECRET` before starting Tolgee.
 ### Automatic pull (recommended)
 
 Set these environment variables (server-side only):
@@ -56,10 +57,13 @@ and injected into the web container at runtime.
    - `INFISICAL_TOKEN`
    - `INFISICAL_PROJECT_ID`
 
-Then create a root `.env` and start the web container:
+Then export Infisical vars in your shell and start the web container:
 
-- `cp .env.example .env`
-- Fill in `INFISICAL_PROJECT_ID` and `INFISICAL_TOKEN`
+- `export INFISICAL_PROJECT_ID=<your-project-id>`
+- `export INFISICAL_TOKEN=<your-service-token>`
+- Optional overrides:
+  - `export INFISICAL_API_URL=http://infisical:8080`
+  - `export INFISICAL_ENV=dev`
 
 ## Quality Gates in CI
 
