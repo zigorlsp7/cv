@@ -207,14 +207,14 @@ jobs:
         run: mkdir -p artifacts
 
       - name: Generate SBOM (api image)
-        uses: anchore/sbom-action@a930d0ac434e3182448fe678398ba5713717112a # v0
+        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0
         with:
           image: cv-api:ci
           format: spdx-json
           output-file: artifacts/sbom-api.spdx.json
 
       - name: Generate SBOM (web image)
-        uses: anchore/sbom-action@a930d0ac434e3182448fe678398ba5713717112a # v0
+        uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0
         with:
           image: cv-web:ci
           format: spdx-json
