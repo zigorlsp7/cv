@@ -1,5 +1,5 @@
 # ---- base ----
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 
 # ---- deps (dev + build) ----
@@ -39,7 +39,7 @@ WORKDIR /app/apps/api
 RUN npm run build
 
 # ---- prod ----
-FROM node:20-alpine AS prod
+FROM node:25-alpine AS prod
 WORKDIR /app/apps/api
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules /app/node_modules
