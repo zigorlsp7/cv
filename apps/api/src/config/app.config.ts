@@ -45,6 +45,9 @@ export type AppConfig = {
     serviceName: string;
     endpoint: string;
   };
+  auth: {
+    adminApiToken: string;
+  };
   features: Record<string, boolean>;
 };
 
@@ -203,6 +206,8 @@ const envSchema = z
     OTEL_SERVICE_NAME: z.string().min(1),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url(),
 
+    ADMIN_API_TOKEN: z.string().min(1),
+
     FEATURE_FLAGS: z.string(),
   })
   .superRefine((data, ctx) => {
@@ -344,6 +349,9 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
     otel: {
       serviceName: raw.OTEL_SERVICE_NAME,
       endpoint: raw.OTEL_EXPORTER_OTLP_ENDPOINT,
+    },
+    auth: {
+      adminApiToken: raw.ADMIN_API_TOKEN,
     },
     features: parsedFeatureFlags,
   };

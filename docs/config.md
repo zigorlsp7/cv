@@ -48,6 +48,7 @@ System environment variables still take precedence over file values.
 | `REQUEST_BODY_LIMIT` | no | `1mb` | JSON/urlencoded body max size |
 | `OTEL_SERVICE_NAME` | no | `cv-api` | OpenTelemetry service name |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | no | `http://localhost:4318` | OTLP collector endpoint |
+| `ADMIN_API_TOKEN` | yes | - | Token required for admin API write endpoints (`x-admin-token`) |
 | `FEATURE_FLAGS` | no | empty | Comma-separated feature flags (example: `swagger_docs=true,rum_ingest=true`) |
 
 ## Validation rules

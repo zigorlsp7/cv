@@ -149,6 +149,7 @@ describe('AppController (e2e)', () => {
 
     await request(app.getHttpServer())
       .put('/v1/cv')
+      .set('x-admin-token', config.auth.adminApiToken)
       .send(payload)
       .expect(200)
       .expect(({ body }) => {
@@ -164,5 +165,57 @@ describe('AppController (e2e)', () => {
       .expect(({ body }) => {
         expect(body.data?.fullName).toBe(payload.fullName);
       });
+  });
+
+  it('/v1/cv (PUT) rejects missing admin token', async () => {
+    const payload = {
+      fullName: 'Jane Doe',
+      role: 'Platform Engineer',
+      tagline: 'Builds reliable systems.',
+      chips: ['Location: Remote', 'Email: jane@example.com'],
+      sections: [
+        {
+          id: 'profile-summary',
+          title: 'Profile Summary',
+          summary: 'Short summary',
+          bullets: ['Strong backend ownership'],
+        },
+        {
+          id: 'experience-highlights',
+          title: 'Experience Highlights',
+          summary: 'Most relevant positions and achievements.',
+          bullets: ['Drove reliability and delivery improvements'],
+        },
+        {
+          id: 'skills',
+          title: 'Skills',
+          summary: 'Technical capabilities grouped by category.',
+          bullets: ['TypeScript, NestJS, PostgreSQL'],
+        },
+        {
+          id: 'projects',
+          title: 'Projects',
+          summary: 'Flagship projects that prove execution and ownership.',
+          bullets: ['Built and hardened a production-ready web skeleton'],
+        },
+        {
+          id: 'education',
+          title: 'Education',
+          summary: 'Formal education and certifications.',
+          bullets: ['Computer Science degree'],
+        },
+        {
+          id: 'languages',
+          title: 'Languages',
+          summary: 'Spoken languages and proficiency.',
+          bullets: ['English: Professional', 'Spanish: Native'],
+        },
+      ],
+    };
+
+    await request(app.getHttpServer())
+      .put('/v1/cv')
+      .send(payload)
+      .expect(401);
   });
 });

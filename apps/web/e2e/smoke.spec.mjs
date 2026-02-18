@@ -16,7 +16,8 @@ test('architecture page renders', async ({ page }) => {
   await expect(page).toHaveURL(/\/architecture$/);
 });
 
-test('cv page shows inline edit controls', async ({ page }) => {
+test('cv page hides edit controls for non-admin and shows user auth icon', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /Edit personal info/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Edit personal info/i })).toHaveCount(0);
+  await expect(page.getByTestId('user-auth-menu-trigger')).toBeVisible();
 });

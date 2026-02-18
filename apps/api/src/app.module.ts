@@ -15,6 +15,7 @@ import { RumModule } from './modules/rum/rum.module';
 import { ArchitectureModule } from './modules/architecture/architecture.module';
 import { CvModule } from './modules/cv/cv.module';
 import { getOtelIds } from './observability/otel-log-context';
+import { AdminTokenGuard } from './common/auth/admin-token.guard';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { getOtelIds } from './observability/otel-log-context';
   controllers: [AppController],
   providers: [
     AppService,
+    AdminTokenGuard,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

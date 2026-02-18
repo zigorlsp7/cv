@@ -1,12 +1,14 @@
 import { getUiTheme } from "@/lib/architecture-variants";
 import { CvProfileView } from "@/components/cv-profile-view";
 import { getCvProfile } from "@/lib/cv";
+import { isAdminSession } from "@/lib/auth-session";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const theme = getUiTheme();
   const profile = await getCvProfile();
+  const canEdit = await isAdminSession();
 
   return (
     <main
@@ -14,7 +16,7 @@ export default async function Home() {
       className={`min-h-[calc(100vh-4rem)] px-6 py-12 ${theme.mainBg}`}
     >
       <div className="mx-auto max-w-6xl">
-        <CvProfileView initialProfile={profile} />
+        <CvProfileView initialProfile={profile} initialCanEdit={canEdit} />
       </div>
     </main>
   );

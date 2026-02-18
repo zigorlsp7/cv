@@ -66,6 +66,7 @@ services:
       REQUEST_BODY_LIMIT: 1mb
       OTEL_SERVICE_NAME: cv-api
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-local-admin-token}
       FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
     ports:
       - "3000:3000"
@@ -78,6 +79,7 @@ services:
       - ../package-lock.json:/app/package-lock.json
       - /app/node_modules
       - /app/apps/api/node_modules
+    command: npm run start:dev -w @cv/api
     logging:
       driver: "json-file"
       options:
@@ -113,6 +115,7 @@ services:
       REQUEST_BODY_LIMIT: 1mb
       OTEL_SERVICE_NAME: cv-api-test
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-local-admin-token}
       FEATURE_FLAGS: swagger_docs=true,rum_ingest=true
     ports:
       - "3003:3000"
@@ -125,6 +128,7 @@ services:
       - ../package-lock.json:/app/package-lock.json
       - /app/node_modules
       - /app/apps/api/node_modules
+    command: npm run start:dev -w @cv/api
     logging:
       driver: "json-file"
       options:
@@ -139,7 +143,13 @@ services:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://api:3000}
       NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:-false}
       NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:-http://api:3000/v1/rum/events}
-      I18N_SOURCE: ${I18N_SOURCE:-local}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-local-admin-token}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-local-auth-session-secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-21513663095-94st5vu04uq1pebivq8m7m229tbim4pk.apps.googleusercontent.com}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
+      ADMIN_GOOGLE_EMAILS: ${ADMIN_GOOGLE_EMAILS:-zigorlsp7@gmail.com}
+      I18N_SOURCE: ${I18N_SOURCE:-tolgee}
       TOLGEE_API_URL: ${TOLGEE_API_URL:-http://tolgee:8080}
       TOLGEE_PROJECT_ID: ${TOLGEE_PROJECT_ID:-2}
       INFISICAL_API_URL: ${INFISICAL_API_URL:-http://infisical:8080}
@@ -158,7 +168,7 @@ services:
       - /workspace/node_modules
       - /workspace/apps/web/node_modules
     command: >
-      sh -lc "if [ -n \"$$INFISICAL_TOKEN\" ]; then until curl -fsS \"$$INFISICAL_API_URL/api/status\" >/dev/null; do echo 'Waiting for Infisical...'; sleep 2; done; infisical run --token=\"$$INFISICAL_TOKEN\" --projectId=\"$$INFISICAL_PROJECT_ID\" --env=\"$$INFISICAL_ENV\" --domain=\"$$INFISICAL_API_URL\" -- npm run dev -w web -- -p 3001 -H 0.0.0.0; else npm run dev -w web -- -p 3001 -H 0.0.0.0; fi"
+      sh -lc "if [ -n \"$$INFISICAL_TOKEN\" ] && [ -n \"$$INFISICAL_PROJECT_ID\" ]; then until wget -qO- \"$$INFISICAL_API_URL/api/status\" >/dev/null; do echo 'Waiting for Infisical...'; sleep 2; done; infisical run --token=\"$$INFISICAL_TOKEN\" --projectId=\"$$INFISICAL_PROJECT_ID\" --env=\"$$INFISICAL_ENV\" --domain=\"$$INFISICAL_API_URL\" -- npm run dev -w web -- -p 3001 -H 0.0.0.0; else npm run dev -w web -- -p 3001 -H 0.0.0.0; fi"
     logging:
       driver: "json-file"
       options:
