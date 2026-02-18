@@ -184,7 +184,7 @@ jobs:
           docker build -f apps/web/Dockerfile --target prod -t cv-web:ci .
 
       - name: Trivy scan (api image)
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         with:
           image-ref: cv-api:ci
           format: table
@@ -194,7 +194,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Trivy scan (web image)
-        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
         with:
           image-ref: cv-web:ci
           format: table
