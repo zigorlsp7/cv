@@ -9,6 +9,11 @@ This project includes a local observability stack in `docker/compose.yml`:
 - `Jaeger` + `OTEL Collector` for traces
 - Optional browser RUM ingest endpoint (`/v1/rum/events`)
 
+Log collector config:
+
+- `docker/alloy/config.yml`
+- `docker compose` runs Alloy in Promtail-compat mode (`--config.format=promtail`) to keep the existing parsing pipeline while moving off Promtail runtime.
+
 ## Bring up the stack
 
 ```bash
