@@ -33,7 +33,21 @@ jobs:
         run: npm ci
 
       - name: Validate split compose manifests
+        env:
+          INFISICAL_API_URL: http://infisical:8080
+          INFISICAL_PROJECT_ID: ci-dummy-project
+          INFISICAL_ENV: dev
+          INFISICAL_TOKEN: ci-dummy-token
         run: |
+          cleanup() { rm -f docker/infisical/.env; }
+          trap cleanup EXIT
+          mkdir -p docker/infisical
+          cat > docker/infisical/.env <<'EOF'
+          ENCRYPTION_KEY=ci-dummy-encryption-key
+          AUTH_SECRET=ci-dummy-auth-secret
+          REDIS_URL=redis://infisical_redis:6379
+          SITE_URL=http://infisical:8080
+          EOF
           docker compose -f docker/compose.app.local.yml config > /dev/null
           docker compose -f docker/compose.ops.local.yml config > /dev/null
           docker compose -f docker/compose.app.prod.yml config > /dev/null
