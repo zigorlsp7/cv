@@ -198,7 +198,7 @@ jobs:
         run: npm ci
 
       - name: Audit dependencies (prod only, high+)
-        run: npm audit --omit=dev --audit-level=high
+        run: node ./scripts/audit-prod-gate.mjs
 
       - name: Build prod images
         run: |

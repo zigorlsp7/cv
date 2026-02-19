@@ -29,6 +29,7 @@
     "local:reset": "bash ./scripts/local-stack-reset.sh",
     "precommit:checks": "npm run test:secrets:gitleaks && npm run ci:quality:local && npm run ci:integration:local && npm run test:web:precommit",
     "audit": "npm audit --audit-level=high",
+    "audit:prod:gate": "node ./scripts/audit-prod-gate.mjs",
     "contract:gen:web": "node ./scripts/generate-api-contract.mjs"
   },
   "devDependencies": {
