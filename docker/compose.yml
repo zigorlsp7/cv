@@ -238,12 +238,17 @@ services:
       - ../docker/loki/config.yml:/etc/loki/config.yml:ro
       - loki-data:/loki
 
-  promtail:
-    image: grafana/promtail:2.9.8
-    command: ["-config.file=/etc/promtail/config.yml"]
+  alloy:
+    image: grafana/alloy:v1.12.0
+    command:
+      - run
+      - --config.format=promtail
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.yml
     volumes:
-      - ../docker/promtail/config.yml:/etc/promtail/config.yml:ro
+      - ../docker/alloy/config.yml:/etc/alloy/config.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - alloy-data:/var/lib/alloy/data
     depends_on:
       - loki
 
@@ -325,6 +330,7 @@ volumes:
   pgdata_test:
   grafana-data:
   loki-data:
+  alloy-data:
   tolgee-data:
   infisical-db:
   infisical-redis:
