@@ -33,7 +33,7 @@ flowchart LR
     AM[Alertmanager]
     Gra[Grafana]
     Loki[Loki]
-    PT[Promtail]
+    Alloy[Grafana Alloy]
     OTel[OTel Collector]
     Jae[Jaeger]
     K6[k6]
@@ -49,8 +49,8 @@ flowchart LR
   Prom -->|alerts| AM
   Prom -->|datasource| Gra
 
-  API -->|JSON logs| PT
-  PT --> Loki
+  API -->|JSON logs| Alloy
+  Alloy --> Loki
   Loki -->|datasource| Gra
 
   API -->|OTLP traces| OTel
@@ -237,7 +237,7 @@ Core files:
 - `docker/alertmanager.yml`
 - `docker/alertmanager.prod.yml`
 - `docker/grafana/provisioning/**`
-- `docker/promtail/config.yml`
+- `docker/alloy/config.yml`
 - `docker/loki/config.yml`
 - `docker/otel-collector-config.yml`
 - `docs/runbooks/*.md`
@@ -247,7 +247,7 @@ Purpose:
 
 - Metrics: Prometheus + Grafana
 - Alerts: Prometheus rules -> Alertmanager routing
-- Logs: Docker logs -> Promtail -> Loki -> Grafana
+- Logs: Docker logs -> Grafana Alloy -> Loki -> Grafana
 - Traces: OTEL -> Collector -> Jaeger
 
 ## 3.10 Web Baseline
@@ -420,7 +420,7 @@ Goal: Verify each platform layer locally in Docker.
 1. Generate traffic:
    - `for i in $(seq 1 20); do curl -sS http://localhost:3000/v1/health > /dev/null; done`
 2. In Grafana (`http://localhost:3002`), query Loki logs for `service="api"`.
-3. Purpose: verify Promtail -> Loki -> Grafana flow.
+3. Purpose: verify Grafana Alloy -> Loki -> Grafana flow.
 
 ## 6.7 Tracing pipeline
 

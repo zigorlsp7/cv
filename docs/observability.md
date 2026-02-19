@@ -5,14 +5,19 @@ This project includes a local observability stack in `docker/compose.yml`:
 - `Prometheus` for metrics and recording/alert rules
 - `Alertmanager` for alert routing
 - `Grafana` for dashboards
-- `Loki` + `Promtail` for logs
+- `Loki` + `Grafana Alloy` for logs
 - `Jaeger` + `OTEL Collector` for traces
 - Optional browser RUM ingest endpoint (`/v1/rum/events`)
+
+Log collector config:
+
+- `docker/alloy/config.yml`
+- `docker compose` runs Alloy in Promtail-compat mode (`--config.format=promtail`) to keep the existing parsing pipeline while moving off Promtail runtime.
 
 ## Bring up the stack
 
 ```bash
-docker compose -f docker/compose.yml up -d api prometheus alertmanager grafana loki promtail jaeger otel-collector
+docker compose -f docker/compose.yml up -d api prometheus alertmanager grafana loki alloy jaeger otel-collector
 ```
 
 Access points:

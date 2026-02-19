@@ -267,7 +267,7 @@ const EDGES = [
   { from: 'api', to: 'prometheus', relation: 'exposes /metrics' },
   { from: 'api', to: 'otel', relation: 'exports traces' },
   { from: 'otel', to: 'jaeger', relation: 'ships traces' },
-  { from: 'api', to: 'loki', relation: 'ships logs via promtail' },
+  { from: 'api', to: 'loki', relation: 'ships logs via alloy' },
   { from: 'prometheus', to: 'alertmanager', relation: 'fires alerts' },
   { from: 'prometheus', to: 'grafana', relation: 'datasource' },
   { from: 'loki', to: 'grafana', relation: 'datasource' },
