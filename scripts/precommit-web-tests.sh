@@ -55,4 +55,6 @@ if [ $i -gt 60 ]; then
   docker compose -f "$COMPOSE_FILE" logs --no-color web api_test
   exit 1
 fi
+
+WEB_BASE_URL=http://localhost:3101 npm run test:smoke -w web
 WEB_BASE_URL=http://localhost:3101 npm run test:a11y -w web

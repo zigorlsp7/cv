@@ -59,3 +59,11 @@ RUN rm -rf \
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
+
+# ---- local (prod runtime + infisical cli) ----
+FROM prod AS local
+USER root
+RUN apk add --no-cache bash curl \
+  && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash \
+  && apk add --no-cache infisical
+USER node

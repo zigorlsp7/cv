@@ -54,3 +54,4 @@ Then wire resulting names/URLs into GitHub environment vars.
 
 - `docs/backup-restore.md`
 - `docs/observability.md`
+- `docs/compose-split.md`

@@ -1,0 +1,178 @@
+name: cvweb-app-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-cv}
+    ports:
+      - "5432:5432"
+    volumes:
+      - app-local-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
+    networks: [cv_shared]
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-app}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      DB_NAME: ${POSTGRES_DB:-cv}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001,http://web:3001}
+      CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
+      CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
+      CORS_EXPOSED_HEADERS: X-Request-Id
+      CORS_CREDENTIALS: "true"
+      CORS_MAX_AGE_SECONDS: 600
+      RATE_LIMIT_TTL_MS: 60000
+      RATE_LIMIT_LIMIT: 100
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      REQUEST_TIMEOUT_MS: 30000
+      HEADERS_TIMEOUT_MS: 30000
+      KEEP_ALIVE_TIMEOUT_MS: 5000
+      REQUEST_BODY_LIMIT: 1mb
+      OTEL_SERVICE_NAME: cv-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      INFISICAL_API_URL: ${INFISICAL_API_URL:?INFISICAL_API_URL is required}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:?INFISICAL_PROJECT_ID is required}
+      INFISICAL_ENV: ${INFISICAL_ENV:?INFISICAL_ENV is required}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN:?INFISICAL_TOKEN is required}
+      FEATURE_FLAGS: ${FEATURE_FLAGS:-swagger_docs=false,rum_ingest=true}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
+    command: >
+      sh -lc "until wget -qO- \"$$INFISICAL_API_URL/api/status\" >/dev/null; do echo 'Waiting for Infisical...'; sleep 2; done;
+      infisical run --token=\"$$INFISICAL_TOKEN\" --projectId=\"$$INFISICAL_PROJECT_ID\" --env=\"$$INFISICAL_ENV\" --domain=\"$$INFISICAL_API_URL\" -- node dist/main.js"
+    networks: [cv_shared]
+
+  api_migrate:
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: local
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-app}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      DB_NAME: ${POSTGRES_DB:-cv}
+      PORT: 3000
+      LOG_LEVEL: info
+      CORS_ORIGINS: http://localhost:3001,http://web:3001
+      CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
+      CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
+      CORS_EXPOSED_HEADERS: X-Request-Id
+      CORS_CREDENTIALS: "true"
+      CORS_MAX_AGE_SECONDS: 600
+      RATE_LIMIT_TTL_MS: 60000
+      RATE_LIMIT_LIMIT: 100
+      TRUST_PROXY: "false"
+      REQUEST_TIMEOUT_MS: 30000
+      HEADERS_TIMEOUT_MS: 30000
+      KEEP_ALIVE_TIMEOUT_MS: 5000
+      REQUEST_BODY_LIMIT: 1mb
+      OTEL_SERVICE_NAME: cv-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      INFISICAL_API_URL: ${INFISICAL_API_URL:?INFISICAL_API_URL is required}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:?INFISICAL_PROJECT_ID is required}
+      INFISICAL_ENV: ${INFISICAL_ENV:?INFISICAL_ENV is required}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN:?INFISICAL_TOKEN is required}
+      FEATURE_FLAGS: swagger_docs=false,rum_ingest=true
+    command:
+      [
+        "sh",
+        "-lc",
+        "until wget -qO- \"$$INFISICAL_API_URL/api/status\" >/dev/null; do echo 'Waiting for Infisical...'; sleep 2; done; infisical run --token=\"$$INFISICAL_TOKEN\" --projectId=\"$$INFISICAL_PROJECT_ID\" --env=\"$$INFISICAL_ENV\" --domain=\"$$INFISICAL_API_URL\" -- node /app/apps/api/node_modules/typeorm/cli.js -d dist/typeorm.datasource.js migration:run",
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [cv_shared]
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      target: local
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://api:3000}
+      NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:-false}
+      NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:-http://api:3000/v1/rum/events}
+      NEXT_PUBLIC_RELEASE: ${NEXT_PUBLIC_RELEASE:-local}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-21513663095-94st5vu04uq1pebivq8m7m229tbim4pk.apps.googleusercontent.com}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
+      ADMIN_GOOGLE_EMAILS: ${ADMIN_GOOGLE_EMAILS:-}
+      I18N_SOURCE: ${I18N_SOURCE:-tolgee}
+      TOLGEE_API_URL: ${TOLGEE_API_URL:-http://tolgee:8080}
+      TOLGEE_PROJECT_ID: ${TOLGEE_PROJECT_ID:-2}
+      INFISICAL_API_URL: ${INFISICAL_API_URL:?INFISICAL_API_URL is required}
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:?INFISICAL_PROJECT_ID is required}
+      INFISICAL_ENV: ${INFISICAL_ENV:?INFISICAL_ENV is required}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN:?INFISICAL_TOKEN is required}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+    command: >
+      sh -lc "until wget -qO- \"$$INFISICAL_API_URL/api/status\" >/dev/null; do echo 'Waiting for Infisical...'; sleep 2; done;
+      infisical run --token=\"$$INFISICAL_TOKEN\" --projectId=\"$$INFISICAL_PROJECT_ID\" --env=\"$$INFISICAL_ENV\" --domain=\"$$INFISICAL_API_URL\" -- node apps/web/server.js"
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
+    networks: [cv_shared]
+
+  alloy:
+    image: grafana/alloy:v1.12.0
+    restart: unless-stopped
+    command:
+      - run
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ../docker/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - app-local-alloy-data:/var/lib/alloy/data
+    depends_on:
+      - api
+    networks: [cv_shared]
+
+networks:
+  cv_shared:
+    name: ${CV_SHARED_NETWORK:-cv_shared}
+    external: true
+
+volumes:
+  app-local-pgdata:
+  app-local-alloy-data:

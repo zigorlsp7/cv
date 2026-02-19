@@ -2,6 +2,8 @@ import { DataSourceOptions } from 'typeorm';
 import { config } from './app.config';
 
 export function buildTypeOrmCliConfig(): DataSourceOptions {
+  const isProd = config.nodeEnv === 'production';
+
   return {
     type: 'postgres',
     host: config.db.host,
@@ -10,7 +12,7 @@ export function buildTypeOrmCliConfig(): DataSourceOptions {
     password: config.db.password,
     database: config.db.name,
 
-    entities: ['src/**/*.entity.ts'],
-    migrations: ['src/migrations/*.ts'],
+    entities: isProd ? ['dist/**/*.entity.js'] : ['src/**/*.entity.ts'],
+    migrations: isProd ? ['dist/migrations/*.js'] : ['src/migrations/*.ts'],
   };
 }
