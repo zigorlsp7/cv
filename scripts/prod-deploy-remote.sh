@@ -90,6 +90,42 @@ retry() {
   done
 }
 
+install_compose_plugin_binary() {
+  local compose_version="${COMPOSE_VERSION:-v2.29.7}"
+  local os
+  local arch_raw
+  local arch
+  local plugin_dir
+  local plugin_path
+  local url
+
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  arch_raw="$(uname -m)"
+
+  case "$arch_raw" in
+    x86_64|amd64)
+      arch="x86_64"
+      ;;
+    aarch64|arm64)
+      arch="aarch64"
+      ;;
+    *)
+      echo "[deploy] Unsupported architecture for compose binary fallback: $arch_raw" >&2
+      return 1
+      ;;
+  esac
+
+  plugin_dir="/usr/local/lib/docker/cli-plugins"
+  plugin_path="$plugin_dir/docker-compose"
+  url="https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-${os}-${arch}"
+
+  echo "[deploy] Downloading docker compose plugin binary: $url"
+  mkdir -p "$plugin_dir"
+  curl -fsSL "$url" -o "$plugin_path"
+  chmod +x "$plugin_path"
+  ln -sf "$plugin_path" /usr/local/bin/docker-compose || true
+}
+
 ensure_runtime_dependencies() {
   local packages=()
 
@@ -139,7 +175,8 @@ ensure_runtime_dependencies() {
       set -e
 
       if [ "$legacy_rc" -ne 0 ]; then
-        echo "[deploy] Could not install compose packages via dnf (tried docker-compose-plugin and docker-compose)" >&2
+        echo "[deploy] Could not install compose packages via dnf (tried docker-compose-plugin and docker-compose)"
+        install_compose_plugin_binary || true
       fi
     fi
   fi
