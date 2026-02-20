@@ -198,20 +198,50 @@ jobs:
 
           echo "SSM command id: $command_id"
 
-          set +e
-          aws ssm wait command-executed --command-id "$command_id" --instance-id "$INSTANCE_ID"
-          wait_rc=$?
-          set -e
+          max_attempts=180
+          sleep_seconds=10
+          status=""
+          status_details=""
+          invocation_available="false"
 
-          status="$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query 'Status' --output text)"
+          for attempt in $(seq 1 "$max_attempts"); do
+            set +e
+            invocation_json="$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --output json 2>&1)"
+            rc=$?
+            set -e
+
+            if [ "$rc" -ne 0 ]; then
+              echo "poll[$attempt/$max_attempts]: invocation not ready yet"
+            else
+              invocation_available="true"
+              status="$(printf '%s' "$invocation_json" | jq -r '.Status')"
+              status_details="$(printf '%s' "$invocation_json" | jq -r '.StatusDetails')"
+              echo "poll[$attempt/$max_attempts]: status=$status details=$status_details"
+
+              case "$status" in
+                Success|Cancelled|TimedOut|Failed|Cancelling)
+                  break
+                  ;;
+              esac
+            fi
+
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              sleep "$sleep_seconds"
+            fi
+          done
+
+          if [ "$invocation_available" != "true" ]; then
+            echo "Unable to read SSM command invocation details (command_id=$command_id)" >&2
+            exit 1
+          fi
 
           echo "Command status: $status"
           aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query '{Status:Status,StatusDetails:StatusDetails,ResponseCode:ResponseCode,ExecutionStartDateTime:ExecutionStartDateTime,ExecutionEndDateTime:ExecutionEndDateTime,StandardOutputUrl:StandardOutputUrl,StandardErrorUrl:StandardErrorUrl}' --output json || true
           aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query 'StandardOutputContent' --output text || true
           aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query 'StandardErrorContent' --output text || true
 
-          if [ "$wait_rc" -ne 0 ] || [ "$status" != "Success" ]; then
-            echo "Remote deployment failed (wait_rc=$wait_rc, status=$status)" >&2
+          if [ "$status" != "Success" ]; then
+            echo "Remote deployment failed (status=$status, status_details=$status_details)" >&2
             exit 1
           fi
 
