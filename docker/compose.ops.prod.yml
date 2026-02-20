@@ -90,43 +90,17 @@ services:
       retries: 30
     networks: [cv_shared]
 
-  infisical_db:
-    image: postgres:16-alpine
+  openbao:
+    image: openbao/openbao:latest
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${INFISICAL_POSTGRES_USER:-infisical}
-      POSTGRES_PASSWORD: ${INFISICAL_POSTGRES_PASSWORD:-change-me-infisical-db-password}
-      POSTGRES_DB: ${INFISICAL_POSTGRES_DB:-infisical}
-    volumes:
-      - ops-prod-infisical-db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    networks: [cv_shared]
-
-  infisical_redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - ops-prod-infisical-redis:/data
-    networks: [cv_shared]
-
-  infisical:
-    image: infisical/infisical:v0.158.3
-    restart: unless-stopped
-    env_file:
-      - ./infisical/.env
-    environment:
-      DB_CONNECTION_URI: postgres://${INFISICAL_POSTGRES_USER:-infisical}:${INFISICAL_POSTGRES_PASSWORD:-change-me-infisical-db-password}@infisical_db:5432/${INFISICAL_POSTGRES_DB:-infisical}
-    depends_on:
-      infisical_db:
-        condition: service_healthy
-      infisical_redis:
-        condition: service_started
+    cap_add:
+      - IPC_LOCK
+    command: ["server", "-config=/openbao/config/prod.hcl"]
     ports:
-      - "127.0.0.1:8091:8080"
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - ../docker/openbao/prod.hcl:/openbao/config/prod.hcl:ro
+      - ops-prod-openbao-data:/openbao/data
     networks: [cv_shared]
 
 networks:
@@ -139,5 +113,4 @@ volumes:
   ops-prod-grafana-data:
   ops-prod-loki-data:
   ops-prod-tolgee-data:
-  ops-prod-infisical-db:
-  ops-prod-infisical-redis:
+  ops-prod-openbao-data:

@@ -12,9 +12,6 @@ RUN npm ci -w web
 # ---- dev ----
 FROM base AS dev
 ENV NODE_ENV=development
-RUN apk add --no-cache bash curl \
-  && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash \
-  && apk add --no-cache infisical
 COPY --from=deps /workspace/node_modules /workspace/node_modules
 COPY --from=deps /workspace/apps/web/node_modules /workspace/apps/web/node_modules
 COPY apps/web apps/web
@@ -41,6 +38,7 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=build /workspace/apps/web/.next/standalone ./
 COPY --from=build /workspace/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /workspace/apps/web/public ./apps/web/public
+COPY scripts/openbao-run.mjs /app/scripts/openbao-run.mjs
 RUN rm -rf \
   /usr/local/lib/node_modules/npm \
   /usr/lib/node_modules/npm \
@@ -52,10 +50,5 @@ USER node
 EXPOSE 3001
 CMD ["node", "apps/web/server.js"]
 
-# ---- local (prod runtime + infisical cli) ----
+# ---- local (prod runtime + OpenBao runtime helper) ----
 FROM prod AS local
-USER root
-RUN apk add --no-cache bash curl \
-  && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash \
-  && apk add --no-cache infisical
-USER node

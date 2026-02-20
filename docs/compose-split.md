@@ -10,7 +10,7 @@ Both stacks connect through a shared external Docker network (`cv_shared` by def
 ## Why split
 
 - Better production parity (separate failure domains and lifecycle).
-- You can restart app services without restarting observability/Tolgee/Infisical.
+- You can restart app services without restarting observability/Tolgee/OpenBao.
 - You can move stacks to separate hosts later with minimal config changes.
 
 ## Local production-like mode
@@ -18,18 +18,24 @@ Both stacks connect through a shared external Docker network (`cv_shared` by def
 1. Create the env files:
    - `docker/.env.app.local`
    - `docker/.env.ops.local`
-2. Fill Infisical values in `docker/.env.app.local`:
-   - `INFISICAL_API_URL`
-   - `INFISICAL_PROJECT_ID`
-   - `INFISICAL_ENV`
-   - `INFISICAL_TOKEN`
-3. Create the shared network once:
+2. Fill OpenBao access values in `docker/.env.app.local`:
+   - `OPENBAO_ADDR` (container network URL, usually `http://openbao:8200`)
+   - `OPENBAO_TOKEN`
+   - `OPENBAO_KV_MOUNT`
+   - `OPENBAO_SECRET_PATH`
+3. Fill OpenBao local root token in `docker/.env.ops.local`:
+   - `OPENBAO_DEV_ROOT_TOKEN`
+4. Create `docker/.env.secrets.local` with at least:
+   - `ADMIN_API_TOKEN`
+   - `AUTH_SESSION_SECRET`
+   - `TOLGEE_API_KEY`
+5. Create the shared network once:
    - `docker network create cv_shared || true`
-4. Start ops stack:
+6. Start ops stack:
    - `docker compose --env-file docker/.env.ops.local -f docker/compose.ops.local.yml up -d`
-5. Start app stack:
+7. Start app stack:
    - `docker compose --env-file docker/.env.app.local -f docker/compose.app.local.yml up -d --build`
-6. Run DB migrations once before first traffic:
+8. Run DB migrations once before first traffic:
    - `docker compose --env-file docker/.env.app.local -f docker/compose.app.local.yml --profile tools run --rm api_migrate`
 
 Stop stacks:
@@ -53,15 +59,22 @@ Shortcuts from repo root:
    - `docker network create cv_shared || true`
 4. Start ops stack:
    - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml up -d`
-5. Start app stack:
+5. Initialize OpenBao (first deploy only):
+   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao operator init -key-shares=1 -key-threshold=1`
+   - Save the unseal key and root token securely.
+   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao operator unseal <unseal-key>`
+   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao secrets enable -path=secret kv-v2`
+   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao kv put secret/cv-web/app ADMIN_API_TOKEN=... AUTH_SESSION_SECRET=... TOLGEE_API_KEY=...`
+6. Ensure app env points to OpenBao (`OPENBAO_ADDR`, `OPENBAO_TOKEN`, `OPENBAO_KV_MOUNT`, `OPENBAO_SECRET_PATH`).
+7. Start app stack:
    - `docker compose --env-file docker/.env.app.prod -f docker/compose.app.prod.yml up -d`
-6. Run DB migrations for each release:
+8. Run DB migrations for each release:
    - `docker compose --env-file docker/.env.app.prod -f docker/compose.app.prod.yml --profile tools run --rm api_migrate`
 
 Notes:
 
 - `docker/compose.app.prod.yml` includes Caddy exposing only `80/443`.
-- Observability/Tolgee/Infisical ports in `docker/compose.ops.prod.yml` are bound to `127.0.0.1` by default.
+- Observability/Tolgee/OpenBao ports in `docker/compose.ops.prod.yml` are bound to `127.0.0.1` by default.
 - For real alert channels, render `docker/alertmanager.prod.yml` and mount the rendered file.
 - `docker/compose.ops.prod.yml` uses `docker/prometheus.prod.yml`; set the API metrics target there before deploy.
 

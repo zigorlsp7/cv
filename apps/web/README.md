@@ -51,34 +51,33 @@ Set these environment variables (server-side only):
 
 When set, the web app will pull translations at runtime and cache them for 60 seconds.
 
-For Docker local development, put local non-secret config in `docker/.env` (auto-loaded by
-`docker compose -f docker/compose.yml ...`). Keep `TOLGEE_API_KEY` in Infisical.
+For Docker local development, keep non-secret app config in `docker/.env.app.local` and store
+runtime secrets in OpenBao (seeded from `docker/.env.secrets.local` by `npm run local:up`).
 
 Use `I18N_SOURCE=local` only for CI or offline development. In local Docker and production-like environments, keep `I18N_SOURCE=tolgee`.
 
-## Secrets (Infisical)
+## Secrets (OpenBao)
 
-Infisical is included for local secret management. Tolgee API key should be stored in Infisical
+OpenBao is used for local runtime secret management. Tolgee API key should be stored in OpenBao
 and injected into the web container at runtime.
 
-### Run Infisical locally
+### Run OpenBao locally
 
-1. Create `docker/infisical/.env` with required values (`ENCRYPTION_KEY`, `AUTH_SECRET`, `REDIS_URL`, `SITE_URL`).
-2. Start Infisical:
-   - `set -a && source docker/infisical/.env && set +a && docker compose -f docker/compose.yml up -d infisical infisical_db infisical_redis`
-3. Open `http://localhost:8091` and create a project.
-4. Create a secret `TOLGEE_API_KEY` in the `dev` environment.
-5. Create a service token and export:
-   - `INFISICAL_TOKEN`
-   - `INFISICAL_PROJECT_ID`
+1. In `docker/.env.ops.local`, set:
+   - `OPENBAO_DEV_ROOT_TOKEN=<your-dev-root-token>`
+2. In `docker/.env.app.local`, set:
+   - `OPENBAO_ADDR=http://openbao:8200`
+   - `OPENBAO_TOKEN=<same token or read-only token with access>`
+   - `OPENBAO_KV_MOUNT=secret`
+   - `OPENBAO_SECRET_PATH=cv-web/app`
+3. Create `docker/.env.secrets.local` with at least:
+   - `ADMIN_API_TOKEN`
+   - `AUTH_SESSION_SECRET`
+   - `TOLGEE_API_KEY`
+4. Run `npm run local:up`.
 
-Then export Infisical vars in your shell and start the web container:
-
-- `export INFISICAL_PROJECT_ID=<your-project-id>`
-- `export INFISICAL_TOKEN=<your-service-token>`
-- Optional overrides:
-  - `export INFISICAL_API_URL=http://infisical:8080`
-  - `export INFISICAL_ENV=dev`
+`local:up` starts OpenBao (`http://localhost:8200`), writes the secrets to
+`${OPENBAO_KV_MOUNT}/${OPENBAO_SECRET_PATH}`, then starts API/Web.
 
 ## Quality Gates in CI
 
@@ -92,7 +91,7 @@ Then export Infisical vars in your shell and start the web container:
 - Session cookie is server-signed with `AUTH_SESSION_SECRET`.
 - `ADMIN_GOOGLE_EMAILS` controls who receives `admin` role.
 - Only `admin` users can use write actions in the CV UI.
-- Recommended Infisical secrets:
+- Recommended OpenBao secrets:
   - `GOOGLE_CLIENT_SECRET`
   - `AUTH_SESSION_SECRET`
   - `ADMIN_API_TOKEN`

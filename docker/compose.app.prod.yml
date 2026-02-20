@@ -48,7 +48,11 @@ services:
       REQUEST_BODY_LIMIT: 1mb
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-cv-api}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
-      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-change-me-admin-api-token}
+      OPENBAO_ADDR: ${OPENBAO_ADDR:?OPENBAO_ADDR is required}
+      OPENBAO_TOKEN: ${OPENBAO_TOKEN:?OPENBAO_TOKEN is required}
+      OPENBAO_KV_MOUNT: ${OPENBAO_KV_MOUNT:-secret}
+      OPENBAO_SECRET_PATH: ${OPENBAO_SECRET_PATH:-cv-web/app}
+      OPENBAO_REQUIRED_KEYS: ADMIN_API_TOKEN
       FEATURE_FLAGS: ${FEATURE_FLAGS:-swagger_docs=false,rum_ingest=true}
     depends_on:
       postgres:
@@ -57,6 +61,7 @@ services:
       driver: "json-file"
       options:
         labels: "com.docker.compose.service"
+    command: ["node", "/app/scripts/openbao-run.mjs", "--", "node", "dist/main.js"]
     networks: [cv_shared]
 
   api_migrate:
@@ -86,9 +91,13 @@ services:
       REQUEST_BODY_LIMIT: 1mb
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-cv-api}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
-      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-change-me-admin-api-token}
+      OPENBAO_ADDR: ${OPENBAO_ADDR:?OPENBAO_ADDR is required}
+      OPENBAO_TOKEN: ${OPENBAO_TOKEN:?OPENBAO_TOKEN is required}
+      OPENBAO_KV_MOUNT: ${OPENBAO_KV_MOUNT:-secret}
+      OPENBAO_SECRET_PATH: ${OPENBAO_SECRET_PATH:-cv-web/app}
+      OPENBAO_REQUIRED_KEYS: ADMIN_API_TOKEN
       FEATURE_FLAGS: ${FEATURE_FLAGS:-swagger_docs=false,rum_ingest=true}
-    command: ["sh", "-lc", "node /app/apps/api/node_modules/typeorm/cli.js -d dist/typeorm.datasource.js migration:run"]
+    command: ["node", "/app/scripts/openbao-run.mjs", "--", "node", "/app/apps/api/node_modules/typeorm/cli.js", "-d", "dist/typeorm.datasource.js", "migration:run"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,22 +111,22 @@ services:
       NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:-true}
       NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:-https://api.example.com/v1/rum/events}
       NEXT_PUBLIC_RELEASE: ${NEXT_PUBLIC_RELEASE:-unknown}
-      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-change-me-admin-api-token}
-      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-change-me-auth-session-secret}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
-      ADMIN_GOOGLE_EMAILS: ${ADMIN_GOOGLE_EMAILS:-}
       I18N_SOURCE: ${I18N_SOURCE:-tolgee}
       TOLGEE_API_URL: ${TOLGEE_API_URL:-http://tolgee:8080}
       TOLGEE_PROJECT_ID: ${TOLGEE_PROJECT_ID:-2}
-      TOLGEE_API_KEY: ${TOLGEE_API_KEY:-change-me-tolgee-api-key}
+      OPENBAO_ADDR: ${OPENBAO_ADDR:?OPENBAO_ADDR is required}
+      OPENBAO_TOKEN: ${OPENBAO_TOKEN:?OPENBAO_TOKEN is required}
+      OPENBAO_KV_MOUNT: ${OPENBAO_KV_MOUNT:-secret}
+      OPENBAO_SECRET_PATH: ${OPENBAO_SECRET_PATH:-cv-web/app}
+      OPENBAO_REQUIRED_KEYS: ADMIN_API_TOKEN,AUTH_SESSION_SECRET,TOLGEE_API_KEY
     depends_on:
       - api
     logging:
       driver: "json-file"
       options:
         labels: "com.docker.compose.service"
+    command: ["node", "/app/scripts/openbao-run.mjs", "--", "node", "apps/web/server.js"]
     networks: [cv_shared]
 
   alloy:
