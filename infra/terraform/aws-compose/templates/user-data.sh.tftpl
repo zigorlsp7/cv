@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker docker-compose-plugin awscli jq tar gzip curl
+
+systemctl enable --now docker
+usermod -aG docker ec2-user
+
+mkdir -p ${deploy_base_dir}
+chown -R ec2-user:ec2-user ${deploy_base_dir}
+
+# Keep Docker disk usage in check over time.
+cat >/etc/cron.daily/docker-prune-safe <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+/usr/bin/docker image prune -af --filter "until=336h" >/dev/null 2>&1 || true
+SCRIPT
+chmod +x /etc/cron.daily/docker-prune-safe
