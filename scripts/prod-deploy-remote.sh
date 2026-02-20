@@ -105,8 +105,8 @@ ensure_runtime_dependencies() {
     packages+=("curl")
   fi
 
-  if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-    packages+=("docker" "docker-compose-plugin")
+  if ! command -v docker >/dev/null 2>&1; then
+    packages+=("docker")
   fi
 
   if [ "${#packages[@]}" -gt 0 ]; then
@@ -123,6 +123,26 @@ ensure_runtime_dependencies() {
     systemctl enable --now docker >/dev/null 2>&1 || true
     systemctl start docker >/dev/null 2>&1 || true
   fi
+
+  if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1; then
+    echo "[deploy] Installing compose runtime (docker-compose-plugin or docker-compose)"
+
+    set +e
+    retry 3 5 dnf install -y docker-compose-plugin >/dev/null 2>&1
+    plugin_rc=$?
+    set -e
+
+    if [ "$plugin_rc" -ne 0 ]; then
+      set +e
+      retry 3 5 dnf install -y docker-compose >/dev/null 2>&1
+      legacy_rc=$?
+      set -e
+
+      if [ "$legacy_rc" -ne 0 ]; then
+        echo "[deploy] Could not install compose packages via dnf (tried docker-compose-plugin and docker-compose)" >&2
+      fi
+    fi
+  fi
 }
 
 ensure_runtime_dependencies
@@ -134,8 +154,23 @@ for cmd in aws jq docker curl; do
   fi
 done
 
-if ! docker compose version >/dev/null 2>&1; then
-  echo "Missing command: docker compose (Docker Compose plugin)" >&2
+run_compose() {
+  if docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+    return
+  fi
+
+  if command -v docker-compose >/dev/null 2>&1; then
+    docker-compose "$@"
+    return
+  fi
+
+  echo "Missing compose runtime (tried 'docker compose' and 'docker-compose')" >&2
+  exit 1
+}
+
+if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1; then
+  echo "Missing compose runtime (docker compose / docker-compose)" >&2
   exit 1
 fi
 
@@ -202,7 +237,7 @@ fi
 docker network create "$network_name" >/dev/null 2>&1 || true
 
 echo "[deploy] Starting ops stack"
-docker compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml up -d
+run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml up -d
 
 echo "[deploy] Waiting for OpenBao health"
 i=1
@@ -217,15 +252,15 @@ done
 
 if [ $i -gt 60 ]; then
   echo "OpenBao did not become ready (expected 200/429). It may be sealed." >&2
-  docker compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml logs --no-color --tail=120 openbao || true
+  run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml logs --no-color --tail=120 openbao || true
   exit 1
 fi
 
 echo "[deploy] Starting app stack"
-docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
+run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
 
 echo "[deploy] Running migrations"
-docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml --profile tools run --rm api_migrate
+run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml --profile tools run --rm api_migrate
 
 api_domain="$(grep -E '^API_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
 web_domain="$(grep -E '^WEB_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
@@ -242,6 +277,6 @@ echo "[deploy] Health checking web via Caddy"
 curl -fsS -H "Host: $web_domain" http://127.0.0.1/ >/dev/null
 
 
-docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml ps
+run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml ps
 
 echo "[deploy] Release $RELEASE_TAG deployed successfully"

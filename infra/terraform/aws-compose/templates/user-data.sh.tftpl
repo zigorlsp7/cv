@@ -2,7 +2,10 @@
 set -euxo pipefail
 
 dnf update -y
-dnf install -y docker docker-compose-plugin awscli jq tar gzip curl
+dnf install -y docker awscli jq tar gzip curl
+if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev/null 2>&1; then
+  dnf install -y docker-compose-plugin || dnf install -y docker-compose || true
+fi
 
 systemctl enable --now docker
 usermod -aG docker ec2-user
