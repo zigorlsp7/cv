@@ -1,0 +1,3 @@
+# Temporary allowlist for transitive minimatch ReDoS in the TypeORM chain.
+# Remove once TypeORM (or its glob/minimatch subtree) is upgraded to a fixed version.
+CVE-2026-26996
