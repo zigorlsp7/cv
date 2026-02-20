@@ -104,12 +104,22 @@ jobs:
         run: |
           api_image="${API_REPOSITORY}:${IMAGE_TAG}"
           web_image="${WEB_REPOSITORY}:${IMAGE_TAG}"
+          api_repo_name="${API_REPOSITORY#*/}"
+          web_repo_name="${WEB_REPOSITORY#*/}"
 
-          docker build -f apps/api/Dockerfile --target prod -t "$api_image" .
-          docker push "$api_image"
+          if aws ecr describe-images --repository-name "$api_repo_name" --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "API image already exists in ECR with immutable tag, reusing: $api_image"
+          else
+            docker build -f apps/api/Dockerfile --target prod -t "$api_image" .
+            docker push "$api_image"
+          fi
 
-          docker build -f apps/web/Dockerfile --target prod -t "$web_image" .
-          docker push "$web_image"
+          if aws ecr describe-images --repository-name "$web_repo_name" --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "Web image already exists in ECR with immutable tag, reusing: $web_image"
+          else
+            docker build -f apps/web/Dockerfile --target prod -t "$web_image" .
+            docker push "$web_image"
+          fi
 
           echo "api_image=$api_image" >> "$GITHUB_OUTPUT"
           echo "web_image=$web_image" >> "$GITHUB_OUTPUT"
