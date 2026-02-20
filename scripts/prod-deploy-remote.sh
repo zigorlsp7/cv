@@ -70,12 +70,74 @@ if [ -z "$RELEASE_DIR" ] || [ -z "$AWS_REGION" ] || [ -z "$APP_SSM_PREFIX" ] || 
   exit 1
 fi
 
+retry() {
+  local attempts="$1"
+  local sleep_seconds="$2"
+  shift 2
+  local i=1
+
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+
+    if [ "$i" -ge "$attempts" ]; then
+      return 1
+    fi
+
+    sleep "$sleep_seconds"
+    i=$((i + 1))
+  done
+}
+
+ensure_runtime_dependencies() {
+  local packages=()
+
+  if ! command -v aws >/dev/null 2>&1; then
+    packages+=("awscli")
+  fi
+
+  if ! command -v jq >/dev/null 2>&1; then
+    packages+=("jq")
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    packages+=("curl")
+  fi
+
+  if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+    packages+=("docker" "docker-compose-plugin")
+  fi
+
+  if [ "${#packages[@]}" -gt 0 ]; then
+    if ! command -v dnf >/dev/null 2>&1; then
+      echo "Missing required dependencies and dnf is unavailable for install: ${packages[*]}" >&2
+      exit 1
+    fi
+
+    echo "[deploy] Installing missing runtime dependencies: ${packages[*]}"
+    retry 12 10 dnf install -y "${packages[@]}"
+  fi
+
+  if command -v docker >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1; then
+    systemctl enable --now docker >/dev/null 2>&1 || true
+    systemctl start docker >/dev/null 2>&1 || true
+  fi
+}
+
+ensure_runtime_dependencies
+
 for cmd in aws jq docker curl; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Missing command: $cmd" >&2
     exit 1
   fi
 done
+
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Missing command: docker compose (Docker Compose plugin)" >&2
+  exit 1
+fi
 
 if [ ! -d "$RELEASE_DIR" ]; then
   echo "Release dir not found: $RELEASE_DIR" >&2
