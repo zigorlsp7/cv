@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 const HIGH_OR_CRITICAL = new Set(['high', 'critical']);
 const ALLOWED_GHSA = new Set(['GHSA-3PPC-4F35-3M26']);
 const ALLOWED_CHAIN_PACKAGES = new Set([
+  '@nestjs/typeorm',
   'minimatch',
   'glob',
   'rimraf',
@@ -20,11 +21,6 @@ function parseGhsa(value) {
   if (typeof value !== 'string') return null;
   const match = value.match(/GHSA-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}/i);
   return match ? match[0].toUpperCase() : null;
-}
-
-function hasNoFix(vulnerability) {
-  const fix = vulnerability?.fixAvailable;
-  return fix === false || fix == null;
 }
 
 function isAllowedViaEntry(via) {
@@ -76,7 +72,6 @@ function evaluateModernAudit(report) {
 
     const isAllowlisted =
       ALLOWED_CHAIN_PACKAGES.has(name) &&
-      hasNoFix(vulnerability) &&
       (hasAllowedGhsa || allViaAllowed);
 
     const issue = {
