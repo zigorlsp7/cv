@@ -5,7 +5,7 @@ This project includes a local observability stack in `docker/compose.yml`:
 - `Prometheus` for metrics and recording/alert rules
 - `Alertmanager` for alert routing
 - `Grafana` for dashboards
-- `Loki` + `Grafana Alloy` for logs
+- `Loki` + `Alloy` for logs
 - `Jaeger` + `OTEL Collector` for traces
 - Optional browser RUM ingest endpoint (`/v1/rum/events`)
 

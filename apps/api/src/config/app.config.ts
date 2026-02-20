@@ -211,6 +211,30 @@ const envSchema = z
     FEATURE_FLAGS: z.string(),
   })
   .superRefine((data, ctx) => {
+    if (data.NODE_ENV === 'test') {
+      const isHostTestDb = data.DB_HOST === 'localhost' && data.DB_PORT === 5433;
+      const isComposeTestDb =
+        data.DB_HOST === 'postgres_test' && data.DB_PORT === 5432;
+
+      if (data.DB_NAME !== 'cv_test') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DB_NAME'],
+          message:
+            'In test environment DB_NAME must be cv_test (the dedicated test database)',
+        });
+      }
+
+      if (!isHostTestDb && !isComposeTestDb) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DB_HOST'],
+          message:
+            'In test environment, use localhost:5433 or postgres_test:5432 (dedicated test Postgres only)',
+        });
+      }
+    }
+
     const origins = parseList(data.CORS_ORIGINS);
     if (data.NODE_ENV === 'production' && origins.length === 0) {
       ctx.addIssue({

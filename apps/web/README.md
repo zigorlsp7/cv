@@ -63,8 +63,7 @@ and injected into the web container at runtime.
 
 ### Run Infisical locally
 
-1. Create `docker/infisical/.env` from the example:
-   - `cp docker/infisical/.env.example docker/infisical/.env`
+1. Create `docker/infisical/.env` with required values (`ENCRYPTION_KEY`, `AUTH_SECRET`, `REDIS_URL`, `SITE_URL`).
 2. Start Infisical:
    - `set -a && source docker/infisical/.env && set +a && docker compose -f docker/compose.yml up -d infisical infisical_db infisical_redis`
 3. Open `http://localhost:8091` and create a project.

@@ -50,4 +50,12 @@ RUN rm -rf \
   /usr/bin/npx
 USER node
 EXPOSE 3001
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]
+
+# ---- local (prod runtime + infisical cli) ----
+FROM prod AS local
+USER root
+RUN apk add --no-cache bash curl \
+  && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash \
+  && apk add --no-cache infisical
+USER node

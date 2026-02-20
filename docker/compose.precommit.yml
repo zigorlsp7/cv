@@ -1,9 +1,8 @@
-name: cvweb-ci
+name: cvweb-precommit
 
 services:
   postgres_test:
     image: postgres:16-alpine
-    profiles: ["test"]
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
@@ -19,7 +18,6 @@ services:
       retries: 20
 
   api_test:
-    profiles: ["test"]
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
@@ -33,7 +31,7 @@ services:
       DB_USER: app
       DB_PASSWORD: app
       DB_NAME: cv_test
-      CORS_ORIGINS: http://localhost:3001
+      CORS_ORIGINS: http://localhost:3101
       CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
       CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
       CORS_EXPOSED_HEADERS: X-Request-Id
@@ -55,46 +53,50 @@ services:
     depends_on:
       postgres_test:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/v1/health/ready >/dev/null"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-      start_period: 10s
+    volumes:
+      - ../apps/api:/app/apps/api
+      - ../package.json:/app/package.json
+      - ../package-lock.json:/app/package-lock.json
+      - /app/node_modules
+      - /app/apps/api/node_modules
     command: npm run start:dev -w @cv/api
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
 
   web:
-    profiles: ["test"]
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
       target: dev
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://api_test:3000}
-      NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:-false}
-      NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:-http://api_test:3000/v1/rum/events}
+      NEXT_PUBLIC_API_BASE_URL: http://api_test:3000
+      NEXT_PUBLIC_RUM_ENABLED: false
+      NEXT_PUBLIC_RUM_ENDPOINT: http://api_test:3000/v1/rum/events
       ADMIN_API_TOKEN: local-admin-token
       AUTH_SESSION_SECRET: local-auth-session-secret
-      I18N_SOURCE: ${I18N_SOURCE:-local}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
+      ADMIN_GOOGLE_EMAILS: ${ADMIN_GOOGLE_EMAILS:-}
+      I18N_SOURCE: local
     ports:
-      - "3001:3001"
+      - "3101:3001"
     depends_on:
       api_test:
         condition: service_started
-    command: sh -lc "cd /workspace/apps/web && npm run dev -- -p 3001 -H 0.0.0.0"
-
-  k6_test:
-    image: grafana/k6:0.49.0
-    profiles: ["test"]
-    environment:
-      API_BASE_URL: http://api_test:3000
     volumes:
-      - ../loadtest:/scripts:ro
-      - ../artifacts:/artifacts
-    command: ["run", "--summary-export", "/artifacts/k6-summary-test.json", "/scripts/health.js"]
-    depends_on:
-      api_test:
-        condition: service_healthy
+      - ../apps/web:/workspace/apps/web
+      - ../package.json:/workspace/package.json
+      - ../package-lock.json:/workspace/package-lock.json
+      - /workspace/node_modules
+      - /workspace/apps/web/node_modules
+    command: npm run dev -w web -- -p 3001 -H 0.0.0.0
+    logging:
+      driver: "json-file"
+      options:
+        labels: "com.docker.compose.service"
 
 volumes:
   pgdata_test:

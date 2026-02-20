@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-COMPOSE_FILES="${COMPOSE_FILES:-docker/compose.yml}"
+COMPOSE_FILES="${COMPOSE_FILES:-docker/compose.ci.yml}"
 COMPOSE_PROFILE="${COMPOSE_PROFILE:-test}"
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres_test}"
 DB_USER="${DB_USER:-app}"
