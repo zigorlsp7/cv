@@ -81,7 +81,7 @@ services:
     depends_on:
       api_test:
         condition: service_started
-    command: npm run dev -w web -- -p 3001 -H 0.0.0.0
+    command: sh -lc "cd /workspace/apps/web && npm run dev -- -p 3001 -H 0.0.0.0"
 
   k6_test:
     image: grafana/k6:0.49.0
