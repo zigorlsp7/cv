@@ -1,35 +1,16 @@
-# Terraform Skeleton (AWS)
+# Terraform Layout
 
-This is a production-oriented skeleton covering:
+This repository currently has two Terraform tracks:
 
-- VPC/network baseline
-- ECR repositories (`api`, `web`)
-- ECS Fargate cluster/services (container deploy target)
-- RDS PostgreSQL
-- Secrets Manager + SSM parameters
-- ACM certificate + optional CloudFront front door
+1. `infra/terraform/aws-compose` (recommended)
+- Provisions AWS infrastructure for this repo's current production model: one EC2 host running split compose stacks.
+- Works with `.github/workflows/deploy.yml` release deployment flow.
 
-It is intentionally minimal and needs environment values before apply.
+2. `infra/terraform` root files (legacy ECS skeleton)
+- Kept for reference from earlier architecture exploration.
 
-## Structure
+If you are deploying the current app as-is, use `aws-compose`.
 
-- `providers.tf` provider + backend placeholders
-- `variables.tf` required environment inputs
-- `main.tf` core resource skeleton
-- `outputs.tf` key IDs/endpoints
-- `environments/dev.tfvars.example` example inputs
+Also available:
 
-## Bootstrap
-
-```bash
-cd infra/terraform
-terraform init
-terraform plan -var-file=environments/dev.tfvars.example
-```
-
-## Notes
-
-- This skeleton favors ECS Fargate. Lambda container can be added as an alternative module.
-- Store DB credentials in Secrets Manager and inject to ECS task definitions.
-- Use ACM cert + ALB (and optional CloudFront) for TLS/domain.
-- ECS services are provisioned with `bootstrap` image tags by default; push images and set `api_image_tag`/`web_image_tag` before production rollout.
+- `infra/terraform/bootstrap` for creating an S3 backend bucket for Terraform state.
