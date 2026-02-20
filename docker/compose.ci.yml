@@ -55,6 +55,12 @@ services:
     depends_on:
       postgres_test:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/v1/health/ready >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
     command: npm run start:dev -w @cv/api
 
   web:
@@ -87,7 +93,8 @@ services:
       - ../artifacts:/artifacts
     command: ["run", "--summary-export", "/artifacts/k6-summary-test.json", "/scripts/health.js"]
     depends_on:
-      - api_test
+      api_test:
+        condition: service_healthy
 
 volumes:
   pgdata_test:
