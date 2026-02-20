@@ -188,16 +188,20 @@ jobs:
 
           echo "SSM command id: $command_id"
 
+          set +e
           aws ssm wait command-executed --command-id "$command_id" --instance-id "$INSTANCE_ID"
+          wait_rc=$?
+          set -e
 
           status="$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query 'Status' --output text)"
 
           echo "Command status: $status"
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query '{Status:Status,StatusDetails:StatusDetails,ResponseCode:ResponseCode,ExecutionStartDateTime:ExecutionStartDateTime,ExecutionEndDateTime:ExecutionEndDateTime,StandardOutputUrl:StandardOutputUrl,StandardErrorUrl:StandardErrorUrl}' --output json || true
           aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query 'StandardOutputContent' --output text || true
           aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --query 'StandardErrorContent' --output text || true
 
-          if [ "$status" != "Success" ]; then
-            echo "Remote deployment failed with status=$status" >&2
+          if [ "$wait_rc" -ne 0 ] || [ "$status" != "Success" ]; then
+            echo "Remote deployment failed (wait_rc=$wait_rc, status=$status)" >&2
             exit 1
           fi
 
