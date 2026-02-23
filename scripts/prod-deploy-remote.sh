@@ -211,6 +211,44 @@ if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev
   exit 1
 fi
 
+ECR_LOGGED_IN_REGISTRIES="|"
+
+is_ecr_registry() {
+  local registry="$1"
+  [[ "$registry" == *".dkr.ecr."*".amazonaws.com"* ]]
+}
+
+login_ecr_for_image() {
+  local image="$1"
+  local registry
+  local registry_region
+
+  registry="${image%%/*}"
+
+  # Images without an explicit registry (e.g. docker.io/library/alpine) are skipped.
+  if [ -z "$registry" ] || [ "$registry" = "$image" ]; then
+    return 0
+  fi
+
+  if ! is_ecr_registry "$registry"; then
+    return 0
+  fi
+
+  if [[ "$ECR_LOGGED_IN_REGISTRIES" == *"|${registry}|"* ]]; then
+    return 0
+  fi
+
+  registry_region="$(printf '%s' "$registry" | awk -F'.' '{print $4}')"
+  if [ -z "$registry_region" ]; then
+    registry_region="$AWS_REGION"
+  fi
+
+  echo "[deploy] Logging into ECR registry: $registry (region=$registry_region)"
+  aws ecr get-login-password --region "$registry_region" | docker login --username AWS --password-stdin "$registry" >/dev/null
+
+  ECR_LOGGED_IN_REGISTRIES="${ECR_LOGGED_IN_REGISTRIES}${registry}|"
+}
+
 prepare_openbao_volume_permissions() {
   local openbao_uid
   local openbao_gid
@@ -323,6 +361,9 @@ if [ $i -gt 60 ]; then
   run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml logs --no-color --tail=120 openbao || true
   exit 1
 fi
+
+login_ecr_for_image "$API_IMAGE"
+login_ecr_for_image "$WEB_IMAGE"
 
 echo "[deploy] Starting app stack"
 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
