@@ -228,8 +228,17 @@ prepare_openbao_volume_permissions() {
     openbao_gid="1000"
   fi
 
+  # If the probe returns root, prefer the common non-root OpenBao runtime IDs.
+  if [ "$openbao_uid" = "0" ]; then
+    openbao_uid="100"
+  fi
+
+  if [ "$openbao_gid" = "0" ]; then
+    openbao_gid="1000"
+  fi
+
   echo "[deploy] Preparing OpenBao data permissions for uid:gid ${openbao_uid}:${openbao_gid}"
-  run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml run --rm --no-deps --user 0:0 --entrypoint sh openbao -lc "mkdir -p /openbao/data && chown -R ${openbao_uid}:${openbao_gid} /openbao/data && chmod -R u+rwX,g+rwX /openbao/data"
+  run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml run --rm --no-deps --user 0:0 --entrypoint sh openbao -lc "mkdir -p /openbao/data && chown -R ${openbao_uid}:${openbao_gid} /openbao/data && chmod -R u+rwX,g+rwX,o+rwX /openbao/data"
 }
 
 if [ ! -d "$RELEASE_DIR" ]; then
