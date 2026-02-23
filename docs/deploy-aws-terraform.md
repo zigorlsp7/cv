@@ -8,6 +8,8 @@ This guide matches the current architecture in this repo:
 
 It is designed for first-time setup and automated deployment after each GitHub Release.
 
+Before editing env values, read `docs/env-management.md` for source-of-truth rules.
+
 ## 1. What Terraform provisions
 
 Stack: `infra/terraform/aws-compose`
@@ -190,7 +192,8 @@ The deploy script renders these on the EC2 host at runtime:
 1. `docker/.env.app.prod`
 2. `docker/.env.ops.prod`
 
-Create local files (do not commit them) with real production values.
+Treat repo `docker/.env.*.prod` files as templates and keep production source-of-truth in SSM/OpenBao.
+Use `npm run env:doctor -- --mode prod` before syncing to SSM.
 
 Minimal `docker/.env.app.prod` keys:
 
@@ -212,6 +215,11 @@ Minimal `docker/.env.app.prod` keys:
 16. `OPENBAO_KV_MOUNT`
 17. `OPENBAO_SECRET_PATH`
 18. `CV_SHARED_NETWORK=cv_shared`
+
+Canonical values:
+
+1. `OPENBAO_KV_MOUNT=kv`
+2. `OPENBAO_SECRET_PATH=cv-web/app`
 
 Minimal `docker/.env.ops.prod` keys:
 
@@ -258,14 +266,14 @@ docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml ex
 Enable KV v2 mount (once):
 
 ```bash
-docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao secrets enable -path=secret kv-v2
+docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao secrets enable -path=kv kv-v2
 ```
 
 Write app secrets used by containers:
 
 ```bash
 docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao \
-  bao kv put secret/cv-web/app \
+  bao kv put kv/cv-web/app \
   ADMIN_API_TOKEN='<value>' \
   AUTH_SESSION_SECRET='<value>' \
   TOLGEE_API_KEY='<value>' \

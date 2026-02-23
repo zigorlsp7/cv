@@ -15,7 +15,7 @@ function normalize(value) {
 async function fetchOpenBaoSecrets() {
   const addr = normalize(process.env.OPENBAO_ADDR);
   const token = normalize(process.env.OPENBAO_TOKEN);
-  const mount = normalize(process.env.OPENBAO_KV_MOUNT) ?? "secret";
+  const mount = normalize(process.env.OPENBAO_KV_MOUNT) ?? "kv";
   const path = normalize(process.env.OPENBAO_SECRET_PATH) ?? "cv-web/app";
   const retries = Number(process.env.OPENBAO_FETCH_RETRIES ?? 45);
   const retryDelayMs = Number(process.env.OPENBAO_FETCH_DELAY_MS ?? 2000);

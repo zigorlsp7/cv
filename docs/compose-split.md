@@ -37,6 +37,8 @@ Both stacks connect through a shared external Docker network (`cv_shared` by def
    - `docker compose --env-file docker/.env.app.local -f docker/compose.app.local.yml up -d --build`
 8. Run DB migrations once before first traffic:
    - `docker compose --env-file docker/.env.app.local -f docker/compose.app.local.yml --profile tools run --rm api_migrate`
+9. Validate env contract (recommended):
+   - `npm run env:doctor -- --mode local`
 
 Stop stacks:
 
@@ -45,7 +47,9 @@ Stop stacks:
 
 Shortcuts from repo root:
 
-- `npm run local:up` (create network, start ops + app, run migrations)
+- `npm run local:up:ops` (create network, start ops, wait for OpenBao, bootstrap OpenBao KV mount)
+- `npm run local:up:app` (seed runtime secrets, start app, run migrations)
+- `npm run local:up` (runs both commands above in order)
 - `npm run local:down` (stop stacks, keep volumes)
 - `npm run local:reset` (stop stacks, remove volumes, remove shared network)
 
@@ -63,13 +67,15 @@ Shortcuts from repo root:
    - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao operator init -key-shares=1 -key-threshold=1`
    - Save the unseal key and root token securely.
    - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao operator unseal <unseal-key>`
-   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao secrets enable -path=secret kv-v2`
-   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao kv put secret/cv-web/app ADMIN_API_TOKEN=... AUTH_SESSION_SECRET=... TOLGEE_API_KEY=...`
+   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao secrets enable -path=kv kv-v2`
+   - `docker compose --env-file docker/.env.ops.prod -f docker/compose.ops.prod.yml exec openbao bao kv put kv/cv-web/app ADMIN_API_TOKEN=... AUTH_SESSION_SECRET=... TOLGEE_API_KEY=...`
 6. Ensure app env points to OpenBao (`OPENBAO_ADDR`, `OPENBAO_TOKEN`, `OPENBAO_KV_MOUNT`, `OPENBAO_SECRET_PATH`).
 7. Start app stack:
    - `docker compose --env-file docker/.env.app.prod -f docker/compose.app.prod.yml up -d`
 8. Run DB migrations for each release:
    - `docker compose --env-file docker/.env.app.prod -f docker/compose.app.prod.yml --profile tools run --rm api_migrate`
+9. Validate template contract before syncing to SSM (recommended):
+   - `npm run env:doctor -- --mode prod`
 
 Notes:
 
@@ -77,6 +83,7 @@ Notes:
 - Observability/Tolgee/OpenBao ports in `docker/compose.ops.prod.yml` are bound to `127.0.0.1` by default.
 - For real alert channels, render `docker/alertmanager.prod.yml` and mount the rendered file.
 - `docker/compose.ops.prod.yml` uses `docker/prometheus.prod.yml`; set the API metrics target there before deploy.
+- Canonical OpenBao app secret location is `kv/cv-web/app`.
 
 If app and ops run on different VMs:
 

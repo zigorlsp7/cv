@@ -70,12 +70,12 @@ services:
       dockerfile: apps/web/Dockerfile
       target: dev
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://api_test:3000}
-      NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:-false}
-      NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:-http://api_test:3000/v1/rum/events}
+      NEXT_PUBLIC_API_BASE_URL: http://api_test:3000
+      NEXT_PUBLIC_RUM_ENABLED: "false"
+      NEXT_PUBLIC_RUM_ENDPOINT: http://api_test:3000/v1/rum/events
       ADMIN_API_TOKEN: local-admin-token
       AUTH_SESSION_SECRET: local-auth-session-secret
-      I18N_SOURCE: ${I18N_SOURCE:-local}
+      I18N_SOURCE: local
     ports:
       - "3001:3001"
     depends_on:

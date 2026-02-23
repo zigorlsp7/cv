@@ -55,9 +55,9 @@ services:
     ports:
       - "3002:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-cv_admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-change-this-admin-password}
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      - GF_USERS_ALLOW_SIGN_UP=${GRAFANA_USERS_ALLOW_SIGN_UP:?GRAFANA_USERS_ALLOW_SIGN_UP is required}
     volumes:
       - ops-local-grafana-data:/var/lib/grafana
       - ../docker/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -99,7 +99,7 @@ services:
       - IPC_LOCK
     environment:
       BAO_DEV_ROOT_TOKEN_ID: ${OPENBAO_DEV_ROOT_TOKEN:?OPENBAO_DEV_ROOT_TOKEN is required}
-      BAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      BAO_DEV_LISTEN_ADDRESS: ${OPENBAO_DEV_LISTEN_ADDRESS:?OPENBAO_DEV_LISTEN_ADDRESS is required}
     command: ["server", "-dev"]
     ports:
       - "8200:8200"
@@ -112,7 +112,7 @@ services:
 
 networks:
   cv_shared:
-    name: ${CV_SHARED_NETWORK:-cv_shared}
+    name: ${CV_SHARED_NETWORK:?CV_SHARED_NETWORK is required}
     external: true
 
 volumes:

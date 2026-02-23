@@ -9,6 +9,7 @@ Current recommended production deployment path for this repository is:
 Use the full guide:
 
 - `docs/deploy-aws-terraform.md`
+- `docs/env-management.md`
 
 Legacy files kept for reference:
 
