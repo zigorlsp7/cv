@@ -7,6 +7,7 @@ Usage:
   $0 \
     --release-dir <path> \
     --region <aws-region> \
+    --mode <all|ops|app> \
     --app-ssm-prefix </cv-web/prod/app> \
     --ops-ssm-prefix </cv-web/prod/ops> \
     --api-image <ecr-uri:tag> \
@@ -17,6 +18,7 @@ USAGE
 
 RELEASE_DIR=""
 AWS_REGION=""
+MODE="all"
 APP_SSM_PREFIX=""
 OPS_SSM_PREFIX=""
 API_IMAGE=""
@@ -31,6 +33,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --region)
       AWS_REGION="$2"
+      shift 2
+      ;;
+    --mode)
+      MODE="$2"
       shift 2
       ;;
     --app-ssm-prefix)
@@ -65,10 +71,56 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -z "$RELEASE_DIR" ] || [ -z "$AWS_REGION" ] || [ -z "$APP_SSM_PREFIX" ] || [ -z "$OPS_SSM_PREFIX" ] || [ -z "$API_IMAGE" ] || [ -z "$WEB_IMAGE" ] || [ -z "$RELEASE_TAG" ]; then
-  usage
-  exit 1
-fi
+require_value() {
+  local name="$1"
+  local value="$2"
+  if [ -z "$value" ]; then
+    echo "Missing required arg: $name" >&2
+    usage
+    exit 1
+  fi
+}
+
+require_value "--release-dir" "$RELEASE_DIR"
+require_value "--region" "$AWS_REGION"
+require_value "--ops-ssm-prefix" "$OPS_SSM_PREFIX"
+require_value "--release-tag" "$RELEASE_TAG"
+
+case "$MODE" in
+  all)
+    require_value "--app-ssm-prefix" "$APP_SSM_PREFIX"
+    require_value "--api-image" "$API_IMAGE"
+    require_value "--web-image" "$WEB_IMAGE"
+    ;;
+  app)
+    require_value "--app-ssm-prefix" "$APP_SSM_PREFIX"
+    require_value "--api-image" "$API_IMAGE"
+    require_value "--web-image" "$WEB_IMAGE"
+    ;;
+  ops)
+    ;;
+  *)
+    echo "Invalid --mode value: $MODE (expected: all|ops|app)" >&2
+    usage
+    exit 1
+    ;;
+esac
+
+MODE_RUNS_OPS="false"
+MODE_RUNS_APP="false"
+
+case "$MODE" in
+  all)
+    MODE_RUNS_OPS="true"
+    MODE_RUNS_APP="true"
+    ;;
+  ops)
+    MODE_RUNS_OPS="true"
+    ;;
+  app)
+    MODE_RUNS_APP="true"
+    ;;
+esac
 
 retry() {
   local attempts="$1"
@@ -327,65 +379,91 @@ upsert_env_var() {
   mv "$tmp" "$file"
 }
 
-fetch_ssm_path_to_env_file "$APP_SSM_PREFIX" "$APP_ENV_FILE"
 fetch_ssm_path_to_env_file "$OPS_SSM_PREFIX" "$OPS_ENV_FILE"
 
-upsert_env_var "$APP_ENV_FILE" "API_IMAGE" "$API_IMAGE"
-upsert_env_var "$APP_ENV_FILE" "WEB_IMAGE" "$WEB_IMAGE"
-upsert_env_var "$APP_ENV_FILE" "NEXT_PUBLIC_RELEASE" "$RELEASE_TAG"
+if [ "$MODE_RUNS_APP" = "true" ]; then
+  fetch_ssm_path_to_env_file "$APP_SSM_PREFIX" "$APP_ENV_FILE"
+  upsert_env_var "$APP_ENV_FILE" "API_IMAGE" "$API_IMAGE"
+  upsert_env_var "$APP_ENV_FILE" "WEB_IMAGE" "$WEB_IMAGE"
+  upsert_env_var "$APP_ENV_FILE" "NEXT_PUBLIC_RELEASE" "$RELEASE_TAG"
+fi
 
-network_name="$(grep -E '^CV_SHARED_NETWORK=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+network_name=""
+if [ "$MODE_RUNS_APP" = "true" ]; then
+  network_name="$(grep -E '^CV_SHARED_NETWORK=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+fi
+if [ -z "$network_name" ]; then
+  network_name="$(grep -E '^CV_SHARED_NETWORK=' "$OPS_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+fi
 if [ -z "$network_name" ]; then
   network_name="cv_shared"
 fi
 
 docker network create "$network_name" >/dev/null 2>&1 || true
-prepare_openbao_volume_permissions
-
-echo "[deploy] Starting ops stack"
-run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml up -d
+if [ "$MODE_RUNS_OPS" = "true" ]; then
+  prepare_openbao_volume_permissions
+  echo "[deploy] Starting ops stack"
+  run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml up -d
+fi
 
 echo "[deploy] Waiting for OpenBao health"
+openbao_ready="false"
+openbao_code=""
 i=1
 while [ $i -le 60 ]; do
-  code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8200/v1/sys/health || true)"
-  if [ "$code" = "200" ] || [ "$code" = "429" ]; then
+  openbao_code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8200/v1/sys/health || true)"
+  if [ "$openbao_code" = "200" ] || [ "$openbao_code" = "429" ]; then
+    openbao_ready="true"
+    break
+  fi
+  if [ "$openbao_code" = "501" ] || [ "$openbao_code" = "503" ]; then
+    if [ "$MODE_RUNS_APP" = "false" ]; then
+      echo "[deploy] OpenBao health is $openbao_code (not initialized or sealed), continuing because mode=$MODE."
+      openbao_ready="true"
+      break
+    fi
+    echo "[deploy] OpenBao health is $openbao_code (not initialized or sealed). App deployment requires initialized and unsealed OpenBao."
     break
   fi
   sleep 2
   i=$((i + 1))
 done
 
-if [ $i -gt 60 ]; then
-  echo "OpenBao did not become ready (expected 200/429). It may be sealed." >&2
+if [ "$openbao_ready" != "true" ]; then
+  echo "OpenBao did not become ready (mode=$MODE, last_health_code=${openbao_code:-unknown})." >&2
   run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml logs --no-color --tail=120 openbao || true
   exit 1
 fi
 
-login_ecr_for_image "$API_IMAGE"
-login_ecr_for_image "$WEB_IMAGE"
+if [ "$MODE_RUNS_APP" = "true" ]; then
+  login_ecr_for_image "$API_IMAGE"
+  login_ecr_for_image "$WEB_IMAGE"
 
-echo "[deploy] Starting app stack"
-run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
+  echo "[deploy] Starting app stack"
+  run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
 
-echo "[deploy] Running migrations"
-run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml --profile tools run --rm api_migrate
+  echo "[deploy] Running migrations"
+  run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml --profile tools run --rm api_migrate
 
-api_domain="$(grep -E '^API_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
-web_domain="$(grep -E '^WEB_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+  api_domain="$(grep -E '^API_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+  web_domain="$(grep -E '^WEB_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
 
-if [ -z "$api_domain" ] || [ -z "$web_domain" ]; then
-  echo "API_DOMAIN and WEB_DOMAIN must be present in $APP_ENV_FILE" >&2
-  exit 1
+  if [ -z "$api_domain" ] || [ -z "$web_domain" ]; then
+    echo "API_DOMAIN and WEB_DOMAIN must be present in $APP_ENV_FILE" >&2
+    exit 1
+  fi
+
+  echo "[deploy] Health checking API via Caddy"
+  curl -fsS -H "Host: $api_domain" http://127.0.0.1/v1/health/ready >/dev/null
+
+  echo "[deploy] Health checking web via Caddy"
+  curl -fsS -H "Host: $web_domain" http://127.0.0.1/ >/dev/null
+
+  run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml ps
 fi
 
-echo "[deploy] Health checking API via Caddy"
-curl -fsS -H "Host: $api_domain" http://127.0.0.1/v1/health/ready >/dev/null
+if [ "$MODE_RUNS_OPS" = "true" ] && [ "$MODE_RUNS_APP" = "false" ]; then
+  run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml ps
+fi
 
-echo "[deploy] Health checking web via Caddy"
-curl -fsS -H "Host: $web_domain" http://127.0.0.1/ >/dev/null
-
-
-run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml ps
-
-echo "[deploy] Release $RELEASE_TAG deployed successfully"
+echo "[deploy] Release $RELEASE_TAG deployed successfully (mode=$MODE)"
