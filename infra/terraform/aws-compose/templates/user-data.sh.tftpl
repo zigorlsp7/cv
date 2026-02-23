@@ -18,7 +18,7 @@ if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev
   if [ -n "$compose_arch" ]; then
     mkdir -p /usr/local/lib/docker/cli-plugins
     curl -fsSL \
-      "https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-linux-${compose_arch}" \
+      "https://github.com/docker/compose/releases/download/$${compose_version}/docker-compose-linux-$${compose_arch}" \
       -o /usr/local/lib/docker/cli-plugins/docker-compose || true
     chmod +x /usr/local/lib/docker/cli-plugins/docker-compose || true
     ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose || true
