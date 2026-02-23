@@ -76,10 +76,10 @@ services:
       NEXT_PUBLIC_RUM_ENDPOINT: http://api_test:3000/v1/rum/events
       ADMIN_API_TOKEN: local-admin-token
       AUTH_SESSION_SECRET: local-auth-session-secret
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
-      ADMIN_GOOGLE_EMAILS: ${ADMIN_GOOGLE_EMAILS:-}
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+      GOOGLE_OAUTH_REDIRECT_URI: ""
+      ADMIN_GOOGLE_EMAILS: ""
       I18N_SOURCE: local
     ports:
       - "3101:3001"

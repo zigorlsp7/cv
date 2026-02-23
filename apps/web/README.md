@@ -25,9 +25,7 @@ Frontend workspace for the CV platform template.
 - `ADMIN_API_TOKEN` - Shared token used by web server proxy when calling protected API write endpoints
 - `I18N_SOURCE` - Translation source mode (`tolgee` default, `local` for CI/offline)
 
-`GOOGLE_CLIENT_ID` is not secret. In local Docker compose it now defaults to:
-
-- `21513663095-94st5vu04uq1pebivq8m7m229tbim4pk.apps.googleusercontent.com`
+Compose files intentionally avoid fallback env defaults. Set Google OAuth vars explicitly in your selected env source.
 ## Localization (Tolgee)
 
 Translations are managed in Tolgee and pulled at runtime by default (`I18N_SOURCE=tolgee`).
@@ -68,7 +66,7 @@ and injected into the web container at runtime.
 2. In `docker/.env.app.local`, set:
    - `OPENBAO_ADDR=http://openbao:8200`
    - `OPENBAO_TOKEN=<same token or read-only token with access>`
-   - `OPENBAO_KV_MOUNT=secret`
+   - `OPENBAO_KV_MOUNT=kv`
    - `OPENBAO_SECRET_PATH=cv-web/app`
 3. Create `docker/.env.secrets.local` with at least:
    - `ADMIN_API_TOKEN`
