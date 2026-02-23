@@ -69,6 +69,8 @@ jobs:
           AWS_DEPLOY_INSTANCE_ID: ${{ vars.AWS_DEPLOY_INSTANCE_ID }}
           AWS_SSM_APP_PREFIX: ${{ vars.AWS_SSM_APP_PREFIX }}
           AWS_SSM_OPS_PREFIX: ${{ vars.AWS_SSM_OPS_PREFIX }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_RUM_ENABLED: ${{ vars.NEXT_PUBLIC_RUM_ENABLED }}
         run: |
           required=(
             AWS_REGION
@@ -78,6 +80,8 @@ jobs:
             AWS_DEPLOY_INSTANCE_ID
             AWS_SSM_APP_PREFIX
             AWS_SSM_OPS_PREFIX
+            NEXT_PUBLIC_API_BASE_URL
+            NEXT_PUBLIC_RUM_ENABLED
           )
 
           for name in "${required[@]}"; do
@@ -87,6 +91,15 @@ jobs:
               exit 1
             fi
           done
+
+          case "$(printf '%s' "$NEXT_PUBLIC_RUM_ENABLED" | tr '[:upper:]' '[:lower:]')" in
+            true|false|1|0|yes|no)
+              ;;
+            *)
+              echo "NEXT_PUBLIC_RUM_ENABLED must be one of: true,false,1,0,yes,no" >&2
+              exit 1
+              ;;
+          esac
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -101,6 +114,9 @@ jobs:
           API_REPOSITORY: ${{ vars.AWS_ECR_API_REPOSITORY_URI }}
           WEB_REPOSITORY: ${{ vars.AWS_ECR_WEB_REPOSITORY_URI }}
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_RUM_ENABLED: ${{ vars.NEXT_PUBLIC_RUM_ENABLED }}
+          NEXT_PUBLIC_RUM_ENDPOINT: ${{ vars.NEXT_PUBLIC_RUM_ENDPOINT }}
         run: |
           api_image="${API_REPOSITORY}:${IMAGE_TAG}"
           web_image="${WEB_REPOSITORY}:${IMAGE_TAG}"
@@ -117,7 +133,12 @@ jobs:
           if aws ecr describe-images --repository-name "$web_repo_name" --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
             echo "Web image already exists in ECR with immutable tag, reusing: $web_image"
           else
-            docker build -f apps/web/Dockerfile --target prod -t "$web_image" .
+            docker build \
+              --build-arg NEXT_PUBLIC_API_BASE_URL="$NEXT_PUBLIC_API_BASE_URL" \
+              --build-arg NEXT_PUBLIC_RUM_ENABLED="$NEXT_PUBLIC_RUM_ENABLED" \
+              --build-arg NEXT_PUBLIC_RUM_ENDPOINT="$NEXT_PUBLIC_RUM_ENDPOINT" \
+              --build-arg NEXT_PUBLIC_RELEASE="$IMAGE_TAG" \
+              -f apps/web/Dockerfile --target prod -t "$web_image" .
             docker push "$web_image"
           fi
 

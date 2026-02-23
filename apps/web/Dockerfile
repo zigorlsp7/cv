@@ -22,6 +22,14 @@ CMD ["npm", "run", "dev", "-w", "web", "--", "-p", "3001", "-H", "0.0.0.0"]
 # ---- build ----
 FROM base AS build
 ENV NODE_ENV=production
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_RUM_ENABLED
+ARG NEXT_PUBLIC_RUM_ENDPOINT
+ARG NEXT_PUBLIC_RELEASE
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ENV NEXT_PUBLIC_RUM_ENABLED=${NEXT_PUBLIC_RUM_ENABLED}
+ENV NEXT_PUBLIC_RUM_ENDPOINT=${NEXT_PUBLIC_RUM_ENDPOINT}
+ENV NEXT_PUBLIC_RELEASE=${NEXT_PUBLIC_RELEASE}
 COPY --from=deps /workspace/node_modules /workspace/node_modules
 COPY --from=deps /workspace/apps/web/node_modules /workspace/apps/web/node_modules
 COPY package.json /workspace/package.json

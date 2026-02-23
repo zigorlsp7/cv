@@ -177,6 +177,12 @@ Add variables from `terraform output -json github_actions_variables`:
 7. `AWS_SSM_OPS_PREFIX`
 8. `DEPLOY_HEALTHCHECK_URL`
 
+Also add these manual GitHub environment variables (used at web image build time):
+
+1. `NEXT_PUBLIC_API_BASE_URL` (example `https://api.your-domain.com`)
+2. `NEXT_PUBLIC_RUM_ENABLED` (`true` or `false`)
+3. `NEXT_PUBLIC_RUM_ENDPOINT` (optional, example `https://api.your-domain.com/v1/rum/events`)
+
 ## 8. Put production env values into SSM Parameter Store
 
 The deploy script renders these on the EC2 host at runtime:
