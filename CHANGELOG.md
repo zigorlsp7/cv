@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.8](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.7...cv-web-v0.1.8) (2026-02-23)
+
+
+### Bug Fixes
+
+* **deploy:** add compose binary fallback ([0fc9e1c](https://github.com/zigorlsp7/cv-web/commit/0fc9e1c201988e792a96ec5bca0fcf731c67efa4))
+* **deploy:** authenticate EC2 host to ECR before app pull ([eb8d760](https://github.com/zigorlsp7/cv-web/commit/eb8d7608ad5bafb4ee84f2d595e55a2d108e3d4a))
+* **deploy:** handle OpenBao volume perms when probe runs as root ([e5d4377](https://github.com/zigorlsp7/cv-web/commit/e5d4377584f3d3d10ebbc187f59a3cf153fa0b1f))
+* **deploy:** install runtime deps on first remote run ([6fcc5c8](https://github.com/zigorlsp7/cv-web/commit/6fcc5c8665671269f50fe74b5588c7638082d6b8))
+* **deploy:** poll SSM command status with longer timeout ([f02b546](https://github.com/zigorlsp7/cv-web/commit/f02b5465315940abe5a709acfab7d042123739b7))
+* **deploy:** repair OpenBao data volume permissions ([9b28949](https://github.com/zigorlsp7/cv-web/commit/9b289497945ad424ff5140bafdc3e632330a3bad))
+* **deploy:** support compose package fallback on AL2023 ([91a3f31](https://github.com/zigorlsp7/cv-web/commit/91a3f31c7525693e8055e1c25ec7ce7648e398a6))
+
 ## [0.1.7](https://github.com/zigorlsp7/cv-web/compare/cv-web-v0.1.6...cv-web-v0.1.7) (2026-02-23)
 
 
