@@ -158,6 +158,9 @@ It runs on:
 1. `release.published`
 2. manual `workflow_dispatch`
 
+Use Release Please tags (`vX.Y.Z`) for releases.
+Do not create manual `cv-web-vX.Y.Z` tags for deployment, because they conflict with Release Please tag history.
+
 Create environment:
 
 1. Repo -> `Settings` -> `Environments`
