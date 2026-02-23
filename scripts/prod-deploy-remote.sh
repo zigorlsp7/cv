@@ -211,6 +211,27 @@ if ! docker compose version >/dev/null 2>&1 && ! command -v docker-compose >/dev
   exit 1
 fi
 
+prepare_openbao_volume_permissions() {
+  local openbao_uid
+  local openbao_gid
+
+  set +e
+  openbao_uid="$(run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml run --rm --no-deps --entrypoint sh openbao -lc 'id -u' 2>/dev/null | tr -d '\r' | tail -n1)"
+  openbao_gid="$(run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml run --rm --no-deps --entrypoint sh openbao -lc 'id -g' 2>/dev/null | tr -d '\r' | tail -n1)"
+  set -e
+
+  if ! [[ "$openbao_uid" =~ ^[0-9]+$ ]]; then
+    openbao_uid="100"
+  fi
+
+  if ! [[ "$openbao_gid" =~ ^[0-9]+$ ]]; then
+    openbao_gid="1000"
+  fi
+
+  echo "[deploy] Preparing OpenBao data permissions for uid:gid ${openbao_uid}:${openbao_gid}"
+  run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml run --rm --no-deps --user 0:0 --entrypoint sh openbao -lc "mkdir -p /openbao/data && chown -R ${openbao_uid}:${openbao_gid} /openbao/data && chmod -R u+rwX,g+rwX /openbao/data"
+}
+
 if [ ! -d "$RELEASE_DIR" ]; then
   echo "Release dir not found: $RELEASE_DIR" >&2
   exit 1
@@ -272,6 +293,7 @@ if [ -z "$network_name" ]; then
 fi
 
 docker network create "$network_name" >/dev/null 2>&1 || true
+prepare_openbao_volume_permissions
 
 echo "[deploy] Starting ops stack"
 run_compose --env-file "$OPS_ENV_FILE" -f docker/compose.ops.prod.yml up -d
