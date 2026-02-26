@@ -1,16 +1,12 @@
 # Deployment
 
-Current recommended production deployment path for this repository is:
+Current production deployment model:
 
-1. AWS EC2 + split compose stacks
-2. Terraform-managed infra (`infra/terraform/aws-compose`)
-3. GitHub Release-triggered deployment (`.github/workflows/deploy.yml`)
+1. `platform-ops` provisions/operates infra and ops services.
+2. `cv-web` deploys app images and app compose only.
+3. Runtime app env comes from SSM (`/cv-web/prod/app`), and runtime secrets from OpenBao (`kv/cv-web`).
 
-Use the full guide:
+Main docs:
 
 - `docs/deploy-aws-terraform.md`
 - `docs/env-management.md`
-
-Legacy files kept for reference:
-
-- `infra/terraform` (ECS-oriented skeleton)

@@ -36,9 +36,6 @@ const OAUTH_STATE_TTL_SECONDS = 10 * 60;
 function readSessionSecret(): string | null {
   const configured = process.env.AUTH_SESSION_SECRET?.trim();
   if (configured) return configured;
-  if (process.env.NODE_ENV !== "production") {
-    return "local-auth-session-secret";
-  }
   return null;
 }
 
@@ -74,7 +71,7 @@ function normalizeEmail(value: string | null | undefined): string {
 
 function adminEmailSet(): Set<string> {
   return new Set(
-    (process.env.ADMIN_GOOGLE_EMAILS ?? "")
+    (() => { const v = process.env.ADMIN_GOOGLE_EMAILS; if (v === undefined) { throw new Error("ADMIN_GOOGLE_EMAILS is required"); } return v; })()
       .split(",")
       .map((entry) => normalizeEmail(entry))
       .filter((entry) => entry.length > 0),
@@ -140,16 +137,14 @@ export function getGoogleOauthConfig(request: Request): GoogleOauthConfig | null
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   if (!clientId || !clientSecret) return null;
 
-  const fallbackRedirect = new URL("/api/auth/google/callback", getRequestOrigin(request)).toString();
   const explicitRedirect = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
-  let redirectUri = fallbackRedirect;
+  if (!explicitRedirect) return null;
 
-  if (explicitRedirect && explicitRedirect.length > 0) {
-    try {
-      redirectUri = normalizeOauthHostname(new URL(explicitRedirect)).toString();
-    } catch {
-      redirectUri = fallbackRedirect;
-    }
+  let redirectUri;
+  try {
+    redirectUri = normalizeOauthHostname(new URL(explicitRedirect)).toString();
+  } catch {
+    return null;
   }
 
   return {

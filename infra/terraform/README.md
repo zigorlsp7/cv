@@ -1,16 +1,16 @@
 # Terraform Layout
 
-This repository currently has two Terraform tracks:
+`cv-web` no longer owns the primary production infrastructure Terraform.
 
-1. `infra/terraform/aws-compose` (recommended)
-- Provisions AWS infrastructure for this repo's current production model: one EC2 host running split compose stacks.
-- Works with `.github/workflows/deploy.yml` release deployment flow.
+Current model:
 
-2. `infra/terraform` root files (legacy ECS skeleton)
-- Kept for reference from earlier architecture exploration.
+1. `platform-ops` repository
+   - Primary source for AWS infra and ops runtime provisioning.
 
-If you are deploying the current app as-is, use `aws-compose`.
+2. `infra/terraform/aws-compose` in this repo
+   - Legacy reference only.
 
-Also available:
+3. `infra/terraform` root files
+   - Legacy ECS-era skeleton.
 
-- `infra/terraform/bootstrap` for creating an S3 backend bucket for Terraform state.
+For active infra changes, use `platform-ops`.

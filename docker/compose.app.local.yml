@@ -68,49 +68,7 @@ services:
       driver: "json-file"
       options:
         labels: "com.docker.compose.service"
-    command: ["node", "/app/scripts/openbao-run.mjs", "--", "node", "dist/main.js"]
-    networks: [cv_shared]
-
-  api_migrate:
-    profiles: ["tools"]
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
-      target: local
-    environment:
-      NODE_ENV: ${NODE_ENV:?NODE_ENV is required}
-      DB_HOST: ${DB_HOST:?DB_HOST is required}
-      DB_PORT: ${DB_PORT:?DB_PORT is required}
-      DB_USER: ${DB_USER:?DB_USER is required}
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      DB_NAME: ${DB_NAME:?DB_NAME is required}
-      PORT: ${API_PORT:?API_PORT is required}
-      LOG_LEVEL: ${LOG_LEVEL:?LOG_LEVEL is required}
-      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
-      CORS_METHODS: ${CORS_METHODS:?CORS_METHODS is required}
-      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:?CORS_ALLOWED_HEADERS is required}
-      CORS_EXPOSED_HEADERS: ${CORS_EXPOSED_HEADERS:?CORS_EXPOSED_HEADERS is required}
-      CORS_CREDENTIALS: ${CORS_CREDENTIALS:?CORS_CREDENTIALS is required}
-      CORS_MAX_AGE_SECONDS: ${CORS_MAX_AGE_SECONDS:?CORS_MAX_AGE_SECONDS is required}
-      RATE_LIMIT_TTL_MS: ${RATE_LIMIT_TTL_MS:?RATE_LIMIT_TTL_MS is required}
-      RATE_LIMIT_LIMIT: ${RATE_LIMIT_LIMIT:?RATE_LIMIT_LIMIT is required}
-      TRUST_PROXY: ${TRUST_PROXY:?TRUST_PROXY is required}
-      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:?REQUEST_TIMEOUT_MS is required}
-      HEADERS_TIMEOUT_MS: ${HEADERS_TIMEOUT_MS:?HEADERS_TIMEOUT_MS is required}
-      KEEP_ALIVE_TIMEOUT_MS: ${KEEP_ALIVE_TIMEOUT_MS:?KEEP_ALIVE_TIMEOUT_MS is required}
-      REQUEST_BODY_LIMIT: ${REQUEST_BODY_LIMIT:?REQUEST_BODY_LIMIT is required}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:?OTEL_SERVICE_NAME is required}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?OTEL_EXPORTER_OTLP_ENDPOINT is required}
-      OPENBAO_ADDR: ${OPENBAO_ADDR:?OPENBAO_ADDR is required}
-      OPENBAO_TOKEN: ${OPENBAO_TOKEN:?OPENBAO_TOKEN is required}
-      OPENBAO_KV_MOUNT: ${OPENBAO_KV_MOUNT:?OPENBAO_KV_MOUNT is required}
-      OPENBAO_SECRET_PATH: ${OPENBAO_SECRET_PATH:?OPENBAO_SECRET_PATH is required}
-      OPENBAO_REQUIRED_KEYS: ${OPENBAO_REQUIRED_KEYS_API:?OPENBAO_REQUIRED_KEYS_API is required}
-      FEATURE_FLAGS: ${FEATURE_FLAGS:?FEATURE_FLAGS is required}
-    command: ["node", "/app/scripts/openbao-run.mjs", "--", "node", "/app/apps/api/node_modules/typeorm/cli.js", "-d", "dist/typeorm.datasource.js", "migration:run"]
-    depends_on:
-      postgres:
-        condition: service_healthy
+    command: ["node", "/app/scripts/openbao-run.mjs", "--", "sh", "-lc", "node /app/apps/api/node_modules/typeorm/cli.js -d dist/typeorm.datasource.js migration:run && exec node dist/main.js"]
     networks: [cv_shared]
 
   web:
@@ -118,6 +76,11 @@ services:
       context: ..
       dockerfile: apps/web/Dockerfile
       target: local
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL is required}
+        NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:?NEXT_PUBLIC_RUM_ENABLED is required}
+        NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:?NEXT_PUBLIC_RUM_ENDPOINT is required}
+        NEXT_PUBLIC_RELEASE: ${NEXT_PUBLIC_RELEASE:?NEXT_PUBLIC_RELEASE is required}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL is required}

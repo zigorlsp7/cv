@@ -1,5 +1,5 @@
 output "instance_id" {
-  description = "EC2 instance ID hosting app+ops compose stacks."
+  description = "EC2 instance ID hosting application workloads."
   value       = aws_instance.app.id
 }
 
@@ -43,11 +43,6 @@ output "ssm_app_parameter_prefix" {
   value       = var.ssm_app_parameter_prefix
 }
 
-output "ssm_ops_parameter_prefix" {
-  description = "SSM prefix expected by deploy script for ops env values."
-  value       = var.ssm_ops_parameter_prefix
-}
-
 output "github_actions_variables" {
   description = "Copy these values into GitHub Environment variables (production)."
   value = {
@@ -57,7 +52,6 @@ output "github_actions_variables" {
     AWS_ECR_API_REPOSITORY_URI = aws_ecr_repository.api.repository_url
     AWS_ECR_WEB_REPOSITORY_URI = aws_ecr_repository.web.repository_url
     AWS_SSM_APP_PREFIX         = var.ssm_app_parameter_prefix
-    AWS_SSM_OPS_PREFIX         = var.ssm_ops_parameter_prefix
     DEPLOY_HEALTHCHECK_URL     = "https://${var.api_domain}/v1/health/ready"
   }
 }
