@@ -6,7 +6,7 @@ usage() {
 Usage:
   ./scripts/env-doctor.sh [--mode all|local|prod]
 
-Checks env-file contract drift across local/prod env files.
+Checks app env-file contract drift across local/prod files.
 USAGE
 }
 
@@ -39,10 +39,7 @@ case "$MODE" in
 esac
 
 APP_LOCAL="docker/.env.app.local"
-OPS_LOCAL="docker/.env.ops.local"
-SECRETS_LOCAL="docker/.env.secrets.local"
 APP_PROD="docker/.env.app.prod"
-OPS_PROD="docker/.env.ops.prod"
 
 error_count=0
 warning_count=0
@@ -94,6 +91,20 @@ check_required_keys() {
   done
 }
 
+check_present_keys() {
+  local file="$1"
+  local scope="$2"
+  shift 2
+
+  local key
+  for key in "$@"; do
+    if ! has_key "$file" "$key"; then
+      echo "ERROR  [$scope] missing key: $key ($file)" >&2
+      error_count=$((error_count + 1))
+    fi
+  done
+}
+
 check_forbidden_keys() {
   local file="$1"
   local scope="$2"
@@ -111,20 +122,6 @@ check_forbidden_keys() {
   done
 }
 
-check_present_keys() {
-  local file="$1"
-  local scope="$2"
-  shift 2
-
-  local key
-  for key in "$@"; do
-    if ! has_key "$file" "$key"; then
-      echo "ERROR  [$scope] missing key: $key ($file)" >&2
-      error_count=$((error_count + 1))
-    fi
-  done
-}
-
 check_openbao_contract() {
   local file="$1"
   local scope="$2"
@@ -138,16 +135,14 @@ check_openbao_contract() {
     error_count=$((error_count + 1))
   fi
 
-  if [ "$path" != "cv-web/app" ]; then
-    echo "ERROR  [$scope] OPENBAO_SECRET_PATH must be 'cv-web/app' (got '$path')" >&2
+  if [ "$path" != "cv-web" ]; then
+    echo "ERROR  [$scope] OPENBAO_SECRET_PATH must be 'cv-web' (got '$path')" >&2
     error_count=$((error_count + 1))
   fi
 }
 
 if [ "$MODE" = "all" ] || [ "$MODE" = "local" ]; then
   require_file "$APP_LOCAL"
-  require_file "$OPS_LOCAL"
-  require_file "$SECRETS_LOCAL"
 
   if [ -f "$APP_LOCAL" ]; then
     check_required_keys "$APP_LOCAL" "local-app" \
@@ -163,24 +158,13 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "local" ]; then
     check_present_keys "$APP_LOCAL" "local-app" \
       GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_OAUTH_REDIRECT_URI ADMIN_GOOGLE_EMAILS
     check_openbao_contract "$APP_LOCAL" "local-app"
-    check_forbidden_keys "$APP_LOCAL" "local-app" ADMIN_API_TOKEN AUTH_SESSION_SECRET TOLGEE_API_KEY GOOGLE_CLIENT_SECRET
-  fi
-
-  if [ -f "$OPS_LOCAL" ]; then
-    check_required_keys "$OPS_LOCAL" "local-ops" CV_SHARED_NETWORK GRAFANA_ADMIN_USER \
-      GRAFANA_ADMIN_PASSWORD GRAFANA_USERS_ALLOW_SIGN_UP OPENBAO_DEV_ROOT_TOKEN \
-      OPENBAO_DEV_LISTEN_ADDRESS OPENBAO_KV_MOUNT OPENBAO_SECRET_PATH
-    check_openbao_contract "$OPS_LOCAL" "local-ops"
-  fi
-
-  if [ -f "$SECRETS_LOCAL" ]; then
-    check_required_keys "$SECRETS_LOCAL" "local-secrets" ADMIN_API_TOKEN AUTH_SESSION_SECRET TOLGEE_API_KEY
+    check_forbidden_keys "$APP_LOCAL" "local-app" \
+      ADMIN_API_TOKEN AUTH_SESSION_SECRET TOLGEE_API_KEY GOOGLE_CLIENT_SECRET
   fi
 fi
 
 if [ "$MODE" = "all" ] || [ "$MODE" = "prod" ]; then
   require_file "$APP_PROD"
-  require_file "$OPS_PROD"
 
   if [ -f "$APP_PROD" ]; then
     check_required_keys "$APP_PROD" "prod-app-template" \
@@ -195,17 +179,13 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "prod" ]; then
       NEXT_PUBLIC_RUM_ENDPOINT NEXT_PUBLIC_RELEASE I18N_SOURCE TOLGEE_API_URL TOLGEE_PROJECT_ID
     check_present_keys "$APP_PROD" "prod-app-template" GOOGLE_CLIENT_ID
     check_openbao_contract "$APP_PROD" "prod-app-template"
-    check_forbidden_keys "$APP_PROD" "prod-app-template" ADMIN_API_TOKEN AUTH_SESSION_SECRET TOLGEE_API_KEY GOOGLE_CLIENT_SECRET
-  fi
-
-  if [ -f "$OPS_PROD" ]; then
-    check_required_keys "$OPS_PROD" "prod-ops-template" CV_SHARED_NETWORK GRAFANA_ADMIN_USER \
-      GRAFANA_ADMIN_PASSWORD GRAFANA_USERS_ALLOW_SIGN_UP OPENBAO_KV_MOUNT OPENBAO_SECRET_PATH
-    check_openbao_contract "$OPS_PROD" "prod-ops-template"
+    check_forbidden_keys "$APP_PROD" "prod-app-template" \
+      ADMIN_API_TOKEN AUTH_SESSION_SECRET TOLGEE_API_KEY GOOGLE_CLIENT_SECRET
   fi
 fi
 
 echo
+
 echo "Env doctor summary:"
 echo "  mode: $MODE"
 echo "  errors: $error_count"

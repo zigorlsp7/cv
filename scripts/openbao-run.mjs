@@ -15,13 +15,15 @@ function normalize(value) {
 async function fetchOpenBaoSecrets() {
   const addr = normalize(process.env.OPENBAO_ADDR);
   const token = normalize(process.env.OPENBAO_TOKEN);
-  const mount = normalize(process.env.OPENBAO_KV_MOUNT) ?? "kv";
-  const path = normalize(process.env.OPENBAO_SECRET_PATH) ?? "cv-web/app";
-  const retries = Number(process.env.OPENBAO_FETCH_RETRIES ?? 45);
-  const retryDelayMs = Number(process.env.OPENBAO_FETCH_DELAY_MS ?? 2000);
+  const mount = normalize(process.env.OPENBAO_KV_MOUNT);
+  const path = normalize(process.env.OPENBAO_SECRET_PATH);
+  const retries = 45;
+  const retryDelayMs = 2000;
 
   if (!addr) die("OPENBAO_ADDR is required");
   if (!token) die("OPENBAO_TOKEN is required");
+  if (!mount) die("OPENBAO_KV_MOUNT is required");
+  if (!path) die("OPENBAO_SECRET_PATH is required");
 
   const mountSegment = mount.replace(/^\/+|\/+$/g, "");
   const pathSegment = path.replace(/^\/+|\/+$/g, "");
@@ -61,7 +63,12 @@ async function fetchOpenBaoSecrets() {
 }
 
 function enforceRequiredKeys(secrets) {
-  const required = (process.env.OPENBAO_REQUIRED_KEYS ?? "")
+  const requiredRaw = process.env.OPENBAO_REQUIRED_KEYS;
+  if (requiredRaw === undefined) {
+    die("OPENBAO_REQUIRED_KEYS is required");
+  }
+
+  const required = requiredRaw
     .split(",")
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
@@ -75,7 +82,7 @@ function enforceRequiredKeys(secrets) {
     die(
       `OpenBao secret path is missing required keys: ${missing.join(
         ", ",
-      )} (path=${process.env.OPENBAO_SECRET_PATH ?? "cv-web/app"})`,
+      )} (path=${process.env.OPENBAO_SECRET_PATH})`,
     );
   }
 }

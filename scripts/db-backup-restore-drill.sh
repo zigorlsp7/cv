@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
-COMPOSE_FILES="${COMPOSE_FILES:-docker/compose.ci.yml}"
-COMPOSE_PROFILE="${COMPOSE_PROFILE:-test}"
-POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres_test}"
-DB_USER="${DB_USER:-app}"
-DB_PASSWORD="${DB_PASSWORD:-app}"
-SOURCE_DB="${SOURCE_DB:-cv_test}"
-RESTORE_DB="${RESTORE_DB:-cv_restore_drill}"
+COMPOSE_FILES="docker/compose.ci.yml"
+COMPOSE_PROFILE="test"
+POSTGRES_SERVICE="postgres_test"
+DB_USER="app"
+DB_PASSWORD="app"
+SOURCE_DB="cv_test"
+RESTORE_DB="cv_restore_drill"
 DUMP_FILE="/tmp/${SOURCE_DB}_drill.sql"
 
 COMPOSE_ARGS=""

@@ -32,9 +32,9 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Validate split compose manifests
+      - name: Validate app compose manifests
         env:
-          CV_SHARED_NETWORK: cv_shared
+          CV_SHARED_NETWORK: platform_ops_shared
           API_IMAGE: cv-api:ci
           WEB_IMAGE: cv-web:ci
           WEB_DOMAIN: app.example.com
@@ -68,7 +68,7 @@ jobs:
           OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
           NEXT_PUBLIC_API_BASE_URL: http://api:3000
           NEXT_PUBLIC_RUM_ENABLED: "false"
-          NEXT_PUBLIC_RUM_ENDPOINT: http://api:3000/v1/rum/events
+          NEXT_PUBLIC_RUM_ENDPOINT: http://localhost:3000/v1/rum/events
           NEXT_PUBLIC_RELEASE: ci
           GOOGLE_CLIENT_ID: ""
           GOOGLE_CLIENT_SECRET: ""
@@ -77,22 +77,15 @@ jobs:
           I18N_SOURCE: local
           TOLGEE_API_URL: http://tolgee:8080
           TOLGEE_PROJECT_ID: "2"
-          GRAFANA_ADMIN_USER: cv_admin
-          GRAFANA_ADMIN_PASSWORD: ci-admin-password
           OPENBAO_ADDR: http://openbao:8200
           OPENBAO_TOKEN: ci-dummy-token
           OPENBAO_KV_MOUNT: kv
-          OPENBAO_SECRET_PATH: cv-web/app
+          OPENBAO_SECRET_PATH: cv-web
           OPENBAO_REQUIRED_KEYS_API: ADMIN_API_TOKEN
           OPENBAO_REQUIRED_KEYS_WEB: ADMIN_API_TOKEN,AUTH_SESSION_SECRET,TOLGEE_API_KEY
-          OPENBAO_DEV_ROOT_TOKEN: ci-dummy-root-token
-          OPENBAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
-          GRAFANA_USERS_ALLOW_SIGN_UP: "false"
         run: |
           docker compose -f docker/compose.app.local.yml config > /dev/null
-          docker compose -f docker/compose.ops.local.yml config > /dev/null
           docker compose -f docker/compose.app.prod.yml config > /dev/null
-          docker compose -f docker/compose.ops.prod.yml config > /dev/null
 
       - name: Lint workspaces
         run: npm run lint

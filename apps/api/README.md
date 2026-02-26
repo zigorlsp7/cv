@@ -4,38 +4,40 @@ Backend workspace for the CV platform template.
 
 ## Scripts
 
-- `npm run start:dev -w @cv/api` - Start API in watch mode
-- `npm run build -w @cv/api` - Build API to `apps/api/dist`
-- `npm run start:prod -w @cv/api` - Run built API
-- `npm run lint -w @cv/api` - Lint API sources
-- `npm run typecheck -w @cv/api` - TypeScript type checks
-- `npm run test:cov -w @cv/api -- --watchman=false --ci` - Unit coverage
-- `npm run test:int -w @cv/api -- --watchman=false --detectOpenHandles` - Integration tests
-- `npm run test:e2e -w @cv/api -- --watchman=false --detectOpenHandles` - E2E tests
+- `npm run start:dev -w @cv/api`
+- `npm run build -w @cv/api`
+- `npm run start:prod -w @cv/api`
+- `npm run lint -w @cv/api`
+- `npm run typecheck -w @cv/api`
+- `npm run test:cov -w @cv/api -- --watchman=false --ci`
+- `npm run test:int -w @cv/api -- --watchman=false --detectOpenHandles`
+- `npm run test:e2e -w @cv/api -- --watchman=false --detectOpenHandles`
 
 ## Database and Migrations
 
 - Runtime DB config comes from `apps/api/.env`.
 - Test DB config comes from `apps/api/.env.test`.
-- Run migrations:
-  - `npm run migration:run -w @cv/api`
-- Revert latest migration:
-  - `npm run migration:revert -w @cv/api`
+- Run migrations: `npm run migration:run -w @cv/api`
+- Revert latest migration: `npm run migration:revert -w @cv/api`
 
 ## Configuration
 
 - Typed config source: `apps/api/src/config/app.config.ts`
 - Config docs: `docs/config.md`
-- Feature flags are passed via `FEATURE_FLAGS` (example: `swagger_docs=true,rum_ingest=true`)
+- Feature flags via `FEATURE_FLAGS` (example: `swagger_docs=true,rum_ingest=true`)
 
 ## Local Stack
 
-Use Docker Compose from repo root:
+From repo root:
 
-- Start app stack:
-  - `docker compose -f docker/compose.yml up -d postgres api web`
-- Start test services:
-  - `docker compose -f docker/compose.yml --profile test up -d postgres_test api_test`
+- Start app stack (requires platform-ops local stack already up):
+  - `npm run local:up`
+- Stop app stack:
+  - `npm run local:down`
+
+For test containers used by integration/e2e flows:
+
+- `docker compose -f docker/compose.ci.yml --profile test up -d postgres_test api_test`
 
 ## Related Docs
 

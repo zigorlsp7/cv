@@ -22,12 +22,12 @@ CI integration:
 ## Run locally
 
 ```bash
-docker compose -f docker/compose.yml --profile test up -d postgres_test api_test
+docker compose -f docker/compose.ci.yml --profile test up -d postgres_test api_test
 ./scripts/db-backup-restore-drill.sh
 ```
 
 ## Why this matters
 
 - Proves backups are restorable, not only creatable.
-- Protects against migration errors and schema drift.
-- Creates an operational habit before production rollout.
+- Protects against migration/schema drift.
+- Keeps recovery practice part of normal delivery.

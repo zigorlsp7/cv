@@ -68,7 +68,6 @@ jobs:
           AWS_DEPLOY_BUCKET: ${{ vars.AWS_DEPLOY_BUCKET }}
           AWS_DEPLOY_INSTANCE_ID: ${{ vars.AWS_DEPLOY_INSTANCE_ID }}
           AWS_SSM_APP_PREFIX: ${{ vars.AWS_SSM_APP_PREFIX }}
-          AWS_SSM_OPS_PREFIX: ${{ vars.AWS_SSM_OPS_PREFIX }}
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
           NEXT_PUBLIC_RUM_ENABLED: ${{ vars.NEXT_PUBLIC_RUM_ENABLED }}
         run: |
@@ -79,13 +78,16 @@ jobs:
             AWS_DEPLOY_BUCKET
             AWS_DEPLOY_INSTANCE_ID
             AWS_SSM_APP_PREFIX
-            AWS_SSM_OPS_PREFIX
             NEXT_PUBLIC_API_BASE_URL
             NEXT_PUBLIC_RUM_ENABLED
           )
 
           for name in "${required[@]}"; do
-            value="${!name:-}"
+            if printenv "$name" >/dev/null; then
+              value="$(printenv "$name")"
+            else
+              value=""
+            fi
             if [ -z "$value" ]; then
               echo "Missing GitHub environment variable: $name" >&2
               exit 1
@@ -179,7 +181,6 @@ jobs:
           INSTANCE_ID: ${{ vars.AWS_DEPLOY_INSTANCE_ID }}
           DEPLOY_BUCKET: ${{ vars.AWS_DEPLOY_BUCKET }}
           APP_SSM_PREFIX: ${{ vars.AWS_SSM_APP_PREFIX }}
-          OPS_SSM_PREFIX: ${{ vars.AWS_SSM_OPS_PREFIX }}
           RELEASE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
           API_IMAGE: ${{ needs.build-and-push.outputs.api_image }}
           WEB_IMAGE: ${{ needs.build-and-push.outputs.web_image }}
@@ -194,7 +195,6 @@ jobs:
             --arg api_image "$API_IMAGE" \
             --arg web_image "$WEB_IMAGE" \
             --arg app_prefix "$APP_SSM_PREFIX" \
-            --arg ops_prefix "$OPS_SSM_PREFIX" \
             '{
               DocumentName: "AWS-RunShellScript",
               InstanceIds: [$instance],
@@ -210,7 +210,7 @@ jobs:
                   "tar -xzf \"/tmp/cvweb-\($release).tar.gz\" -C \"$RELEASE_DIR\"",
                   "cd \"$RELEASE_DIR\"",
                   "chmod +x scripts/prod-deploy-remote.sh",
-                  "./scripts/prod-deploy-remote.sh --release-dir \"$RELEASE_DIR\" --region \"\($region)\" --mode app --app-ssm-prefix \"\($app_prefix)\" --ops-ssm-prefix \"\($ops_prefix)\" --api-image \"\($api_image)\" --web-image \"\($web_image)\" --release-tag \"\($release)\""
+                  "./scripts/prod-deploy-remote.sh --release-dir \"$RELEASE_DIR\" --region \"\($region)\" --app-ssm-prefix \"\($app_prefix)\" --api-image \"\($api_image)\" --web-image \"\($web_image)\" --release-tag \"\($release)\""
                 ]
               }
             }' > "$payload_file"

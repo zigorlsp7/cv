@@ -3,7 +3,7 @@ set -euo pipefail
 
 COMPOSE_FILE="docker/compose.precommit.yml"
 STARTED_BY_HOOK=0
-PROJECT_NAME="${COMPOSE_PROJECT_NAME:-cvweb-precommit}"
+PROJECT_NAME="cvweb-precommit"
 TEST_DB_VOLUME="${PROJECT_NAME}_pgdata_test"
 
 cleanup() {
