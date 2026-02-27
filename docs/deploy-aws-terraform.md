@@ -68,8 +68,9 @@ Ensure these keys exist under `kv/cv-web`:
 ## Deploy
 
 1. Merge to `main`.
-2. Let Release Please create/publish the release.
-3. `Deploy AWS App (EC2 Compose)` runs automatically on release publish.
+2. `Release Please` creates/updates a release PR.
+3. Release PR is auto-approved and auto-merged after checks pass.
+4. `Deploy AWS App (EC2 Compose)` runs automatically on `release.published`.
 
 Manual deploy is also possible via workflow dispatch with a release tag.
 
