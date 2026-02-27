@@ -2,6 +2,12 @@ name: Commitlint
 
 on:
   pull_request:
+    branches: [main]
+    paths-ignore:
+      - CHANGELOG.md
+      - .release-please-manifest.json
+      - package.json
+      - package-lock.json
     types: [opened, edited, synchronize, reopened]
 
 env:
