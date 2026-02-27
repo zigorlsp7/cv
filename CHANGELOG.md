@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.11](https://github.com/zigorlsp7/cv-web/compare/v0.1.10...v0.1.11) (2026-02-27)
+
+
+### Bug Fixes
+
+* **ci:** align cv-web release flow with release-please PR auto-merge ([#59](https://github.com/zigorlsp7/cv-web/issues/59)) ([07c6537](https://github.com/zigorlsp7/cv-web/commit/07c6537f602bb4208b8f72dd61a7def7d6a58fbd))
+* restore release flow cv web ([#61](https://github.com/zigorlsp7/cv-web/issues/61)) ([34ccc87](https://github.com/zigorlsp7/cv-web/commit/34ccc8741862e7f6814f19a46e093f370191227f))
+
 ## [0.1.10](https://github.com/zigorlsp7/cv-web/compare/v0.1.9...v0.1.10) (2026-02-23)
 
 
