@@ -161,7 +161,7 @@ jobs:
         run: |
           aws s3 cp \
             "artifacts/deploy-bundle-${IMAGE_TAG}.tar.gz" \
-            "s3://${DEPLOY_BUCKET}/releases/${IMAGE_TAG}/deploy-bundle.tar.gz"
+            "s3://${DEPLOY_BUCKET}/releases/cv-web/${IMAGE_TAG}/deploy-bundle.tar.gz"
 
   deploy-app:
     name: Remote App Deploy via SSM
@@ -206,7 +206,7 @@ jobs:
                   "mkdir -p \"$BASE_DIR/releases\"",
                   "rm -rf \"$RELEASE_DIR\"",
                   "mkdir -p \"$RELEASE_DIR\"",
-                  "aws s3 cp \"s3://\($bucket)/releases/\($release)/deploy-bundle.tar.gz\" \"/tmp/cvweb-\($release).tar.gz\" --region \($region)",
+                  "aws s3 cp \"s3://\($bucket)/releases/cv-web/\($release)/deploy-bundle.tar.gz\" \"/tmp/cvweb-\($release).tar.gz\" --region \($region)",
                   "tar -xzf \"/tmp/cvweb-\($release).tar.gz\" -C \"$RELEASE_DIR\"",
                   "cd \"$RELEASE_DIR\"",
                   "chmod +x scripts/prod-deploy-remote.sh",

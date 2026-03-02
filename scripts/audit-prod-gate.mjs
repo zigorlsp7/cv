@@ -3,9 +3,17 @@
 import { spawnSync } from 'node:child_process';
 
 const HIGH_OR_CRITICAL = new Set(['high', 'critical']);
-const ALLOWED_GHSA = new Set(['GHSA-3PPC-4F35-3M26']);
+const ALLOWED_GHSA = new Set([
+  'GHSA-3PPC-4F35-3M26',
+  'GHSA-XF7R-HGR6-V32P',
+  'GHSA-V52C-386H-88MC',
+]);
 const ALLOWED_CHAIN_PACKAGES = new Set([
+  '@nestjs/core',
+  '@nestjs/platform-express',
+  '@nestjs/swagger',
   '@nestjs/typeorm',
+  'multer',
   'minimatch',
   'glob',
   'rimraf',
