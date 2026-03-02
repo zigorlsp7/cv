@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.12](https://github.com/zigorlsp7/cv-web/compare/v0.1.11...v0.1.12) (2026-03-02)
+
+
+### Bug Fixes
+
+* **ci:** skip checks for release-please file-only PRs ([#71](https://github.com/zigorlsp7/cv-web/issues/71)) ([c5106ec](https://github.com/zigorlsp7/cv-web/commit/c5106ec43a4c0dccb7b3eb7497c67fd04dff1343))
+* skip release pr check runs ([#73](https://github.com/zigorlsp7/cv-web/issues/73)) ([fced0fb](https://github.com/zigorlsp7/cv-web/commit/fced0fbb91b318c7a164195ac962a4b8e9bfecbf))
+* skip release pr check runs ([#75](https://github.com/zigorlsp7/cv-web/issues/75)) ([c500cfd](https://github.com/zigorlsp7/cv-web/commit/c500cfda3cd134be0fe38dc5c674fd2e17f93785))
+
 ## [0.1.11](https://github.com/zigorlsp7/cv-web/compare/v0.1.10...v0.1.11) (2026-02-27)
 
 
