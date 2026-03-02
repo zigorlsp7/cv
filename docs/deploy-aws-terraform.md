@@ -24,9 +24,9 @@ Deploy workflow: `.github/workflows/deploy.yml`
 
 Set secret:
 
-1. `AWS_DEPLOY_ROLE_ARN`
+1. `AWS_DEPLOY_ROLE_ARN` (use `terraform output cv_web_github_deploy_role_arn` from `platform-ops/infra/terraform/aws-compose`)
 
-Set variables:
+Set variables (prefer `terraform output -json cv_web_github_actions_variables` from `platform-ops`):
 
 1. `AWS_REGION`
 2. `AWS_DEPLOY_BUCKET`
