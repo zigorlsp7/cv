@@ -32,7 +32,7 @@ if (!response.ok) {
 const buffer = Buffer.from(await response.arrayBuffer());
 const zip = await JSZip.loadAsync(buffer);
 
-const outDir = path.join(process.cwd(), "apps/web/messages");
+const outDir = path.join(process.cwd(), "apps/ui/messages");
 await mkdir(outDir, { recursive: true });
 
 const writes = [];

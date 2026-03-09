@@ -6,7 +6,7 @@ variable "aws_region" {
 variable "project" {
   description = "Project slug used in bucket naming."
   type        = string
-  default     = "cv-web"
+  default     = "cv"
 }
 
 variable "environment" {

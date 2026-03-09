@@ -1,6 +1,3 @@
-import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path';
 import { z } from 'zod';
 
 export type NodeEnv = 'development' | 'test' | 'production';
@@ -46,7 +43,10 @@ export type AppConfig = {
     endpoint: string;
   };
   auth: {
-    adminApiToken: string;
+    sessionSecret: string;
+  };
+  swagger: {
+    enabled: boolean;
   };
   features: Record<string, boolean>;
 };
@@ -134,46 +134,6 @@ function parseTrustProxy(value: string): TrustProxy {
   );
 }
 
-function resolveApiRoot(fromDir: string): string {
-  let current = fromDir;
-  for (let i = 0; i < 12; i += 1) {
-    if (
-      fs.existsSync(path.join(current, 'package.json')) &&
-      fs.existsSync(path.join(current, 'src'))
-    ) {
-      return current;
-    }
-    const next = path.dirname(current);
-    if (next === current) break;
-    current = next;
-  }
-  return process.cwd();
-}
-
-function loadEnvFile() {
-  const nodeEnvRaw = process.env.NODE_ENV;
-  if (!nodeEnvRaw) {
-    throw new Error('Invalid environment configuration: NODE_ENV is required');
-  }
-  if (
-    nodeEnvRaw !== 'development' &&
-    nodeEnvRaw !== 'test' &&
-    nodeEnvRaw !== 'production'
-  ) {
-    throw new Error(
-      'Invalid environment configuration: NODE_ENV must be development, test, or production',
-    );
-  }
-  const nodeEnv = nodeEnvRaw as NodeEnv;
-  const fileName = nodeEnv === 'test' ? '.env.test' : '.env';
-  const apiRoot = resolveApiRoot(__dirname);
-  const filePath = path.join(apiRoot, fileName);
-
-  if (fs.existsSync(filePath)) {
-    dotenv.config({ path: filePath, quiet: true });
-  }
-}
-
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']),
@@ -206,7 +166,8 @@ const envSchema = z
     OTEL_SERVICE_NAME: z.string().min(1),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url(),
 
-    ADMIN_API_TOKEN: z.string().min(1),
+    AUTH_SESSION_SECRET: z.string().min(1),
+    SWAGGER_ENABLED: z.string().min(1),
 
     FEATURE_FLAGS: z.string(),
   })
@@ -305,6 +266,16 @@ const envSchema = z
       });
     }
 
+    try {
+      parseBooleanEnv(data.SWAGGER_ENABLED);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['SWAGGER_ENABLED'],
+        message: 'SWAGGER_ENABLED must be true/false (or 1/0, yes/no)',
+      });
+    }
+
   });
 
 let cachedConfig: AppConfig | undefined;
@@ -319,8 +290,6 @@ function formatValidationError(error: z.ZodError): string {
 }
 
 function readEnv(): z.infer<typeof envSchema> {
-  loadEnvFile();
-
   const parseResult = envSchema.safeParse({
     ...process.env,
   });
@@ -375,7 +344,10 @@ function buildConfig(raw: z.infer<typeof envSchema>): AppConfig {
       endpoint: raw.OTEL_EXPORTER_OTLP_ENDPOINT,
     },
     auth: {
-      adminApiToken: raw.ADMIN_API_TOKEN,
+      sessionSecret: raw.AUTH_SESSION_SECRET,
+    },
+    swagger: {
+      enabled: parseBooleanEnv(raw.SWAGGER_ENABLED),
     },
     features: parsedFeatureFlags,
   };

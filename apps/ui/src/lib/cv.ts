@@ -7,13 +7,20 @@ type Envelope<T> = {
   data: T;
 };
 
+function resolveCvApiUrl(base: string): string {
+  const normalized = base.replace(/\/+$/, '');
+  return normalized.endsWith('/v1')
+    ? `${normalized}/cv`
+    : `${normalized}/v1/cv`;
+}
+
 export async function getCvProfile(): Promise<CvProfile> {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!base) {
     throw new Error('NEXT_PUBLIC_API_BASE_URL is required to load CV profile');
   }
 
-  const response = await fetch(`${base}/v1/cv`, { cache: 'no-store' });
+  const response = await fetch(resolveCvApiUrl(base), { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Failed to load CV profile: ${response.status}`);
   }

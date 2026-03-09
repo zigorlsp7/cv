@@ -4,7 +4,6 @@ import AxeBuilder from '@axe-core/playwright';
 const PAGES = [
   { url: '/', name: 'CV' },
   { url: '/architecture', name: 'Architecture' },
-  { url: '/accessibility', name: 'Accessibility' },
 ];
 
 test.describe('accessibility audits', () => {

@@ -1,4 +1,4 @@
-title = "cv-web gitleaks config"
+title = "cv gitleaks config"
 
 [extend]
 useDefault = true

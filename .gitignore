@@ -13,7 +13,7 @@ dist/
 out/
 coverage/
 *.tsbuildinfo
-apps/web/next-env.d.ts
+apps/ui/next-env.d.ts
 
 # logs / OS
 *.log

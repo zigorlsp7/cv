@@ -64,7 +64,7 @@ export class ArchitectureGraphDto {
   @ApiProperty({
     type: 'object',
     additionalProperties: { type: 'boolean' },
-    example: { swagger_docs: true, rum_ingest: true },
+    example: { rum_ingest: true, beta_profile_editor: false },
   })
   featureFlags!: Record<string, boolean>;
 

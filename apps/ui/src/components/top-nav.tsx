@@ -10,7 +10,6 @@ import { useI18n } from "@/i18n/client";
 const NAV_ITEMS = [
   { href: "/", labelKey: "nav.cv" },
   { href: "/architecture", labelKey: "nav.architecture" },
-  { href: "/accessibility", labelKey: "nav.accessibility" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {

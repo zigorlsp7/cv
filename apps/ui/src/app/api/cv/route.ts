@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isAdminSession } from '@/lib/auth-session';
+import { buildApiAuthHeaders, getAuthSession } from '@/lib/auth-session';
 
 function getApiBase(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -9,16 +9,16 @@ function getApiBase(): string {
   return base;
 }
 
-function getAdminApiToken(): string {
-  const explicit = process.env.ADMIN_API_TOKEN?.trim();
-  if (explicit) return explicit;
-  if (process.env.NODE_ENV !== 'production') return 'local-admin-token';
-  throw new Error('ADMIN_API_TOKEN is required');
+function resolveCvApiUrl(): string {
+  const normalized = getApiBase().replace(/\/+$/, '');
+  return normalized.endsWith('/v1')
+    ? `${normalized}/cv`
+    : `${normalized}/v1/cv`;
 }
 
 export async function GET() {
   try {
-    const response = await fetch(`${getApiBase()}/v1/cv`, { cache: 'no-store' });
+    const response = await fetch(resolveCvApiUrl(), { cache: 'no-store' });
     const text = await response.text();
     const contentType = response.headers.get('content-type');
 
@@ -39,8 +39,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const isAdmin = await isAdminSession();
-  if (!isAdmin) {
+  const session = await getAuthSession();
+  if (!session || session.role !== 'admin') {
     return NextResponse.json(
       {
         ok: false,
@@ -50,13 +50,24 @@ export async function PUT(request: Request) {
     );
   }
 
+  const authHeaders = buildApiAuthHeaders(session);
+  if (!authHeaders) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Session signer is not configured',
+      },
+      { status: 500 },
+    );
+  }
+
   const body = await request.text();
   try {
-    const response = await fetch(`${getApiBase()}/v1/cv`, {
+    const response = await fetch(resolveCvApiUrl(), {
       method: 'PUT',
       headers: {
         'content-type': 'application/json',
-        'x-admin-token': getAdminApiToken(),
+        ...authHeaders,
       },
       body,
       cache: 'no-store',

@@ -14,57 +14,50 @@ Frontend workspace for the CV platform template.
 ## Environment Variables
 
 - `NEXT_PUBLIC_API_BASE_URL`
-- `NEXT_PUBLIC_RUM_ENABLED`
-- `NEXT_PUBLIC_RUM_ENDPOINT`
 - `NEXT_PUBLIC_RELEASE`
 - `AUTH_SESSION_SECRET`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_OAUTH_REDIRECT_URI`
 - `ADMIN_GOOGLE_EMAILS`
-- `ADMIN_API_TOKEN`
-- `I18N_SOURCE`
 
 Runtime Tolgee variables (server-side):
 
-- `TOLGEE_API_URL`
-- `TOLGEE_PROJECT_ID`
 - `TOLGEE_API_KEY`
+
+`TOLGEE_API_URL` and `TOLGEE_PROJECT_ID` are fixed by app compose.
 
 ## Localization (Tolgee)
 
-Default runtime mode is `I18N_SOURCE=tolgee`. Locale is stored in `cv-language` cookie.
+Runtime source selection is automatic. If `TOLGEE_API_URL`, `TOLGEE_PROJECT_ID`, and `TOLGEE_API_KEY` are set, the app loads translations from Tolgee. Otherwise it falls back to local JSON files. Locale is stored in `cv-language` cookie.
 
-`cv-web` no longer runs Tolgee itself. Tolgee is provided by `platform-ops`.
+`cv` no longer runs Tolgee itself. Tolgee is provided by `platform-ops`.
 
 For local Docker usage:
 
 1. Start local ops stack from `platform-ops`.
-2. Set in `docker/.env.app.local`:
-   - `TOLGEE_API_URL=http://tolgee:8080`
-   - `TOLGEE_PROJECT_ID=<project-id>`
-3. Store `TOLGEE_API_KEY` in OpenBao path `kv/cv-web`.
-4. Start app stack with `npm run local:up`.
+2. Store `TOLGEE_API_KEY` in OpenBao path `kv/cv`.
+3. Start app stack with `npm run local:up`.
 
-Use `I18N_SOURCE=local` only for CI or offline fallback.
+CI and precommit run with local JSON fallback by default (Tolgee vars are not set there).
 
 ## Secrets (OpenBao)
 
-`cv-web` reads runtime secrets from OpenBao through `scripts/openbao-run.mjs`.
+`cv` reads runtime secrets from OpenBao through `scripts/openbao-run.mjs`.
 
 Expected contract:
 
 - `OPENBAO_KV_MOUNT=kv`
-- `OPENBAO_SECRET_PATH=cv-web`
-- Web token has read access on `kv/data/cv-web`
+- `OPENBAO_SECRET_PATH=cv`
+- Web token has read access on `kv/data/cv`
 
-Typical keys in `kv/cv-web`:
+Typical keys in `kv/cv`:
 
 - `TOLGEE_API_KEY`
 - `AUTH_SESSION_SECRET`
-- `ADMIN_API_TOKEN`
 - `GOOGLE_CLIENT_SECRET`
 - `ADMIN_GOOGLE_EMAILS`
+- `POSTGRES_PASSWORD` (used by app stack startup/deploy scripts)
 
 ## Google SSO + Roles
 

@@ -15,8 +15,8 @@ Backend workspace for the CV platform template.
 
 ## Database and Migrations
 
-- Runtime DB config comes from `apps/api/.env`.
-- Test DB config comes from `apps/api/.env.test`.
+- Runtime DB config comes from Docker service env (`docker/.env.app.local` via `docker/compose.app.local.yml`).
+- Test DB config comes from compose test services (`docker/compose.precommit.yml` and `docker/compose.ci.yml`).
 - Run migrations: `npm run migration:run -w @cv/api`
 - Revert latest migration: `npm run migration:revert -w @cv/api`
 
@@ -24,7 +24,8 @@ Backend workspace for the CV platform template.
 
 - Typed config source: `apps/api/src/config/app.config.ts`
 - Config docs: `docs/config.md`
-- Feature flags via `FEATURE_FLAGS` (example: `swagger_docs=true,rum_ingest=true`)
+- Swagger docs toggle via `SWAGGER_ENABLED` (`true`/`false`)
+- Feature flags via `FEATURE_FLAGS` (example: `rum_ingest=true`)
 
 ## Local Stack
 

@@ -37,7 +37,7 @@ jobs:
         env:
           CV_SHARED_NETWORK: platform_ops_shared
           API_IMAGE: cv-api:ci
-          WEB_IMAGE: cv-web:ci
+          WEB_IMAGE: cv:ci
           WEB_DOMAIN: app.example.com
           API_DOMAIN: api.example.com
           NODE_ENV: production
@@ -64,7 +64,8 @@ jobs:
           HEADERS_TIMEOUT_MS: "30000"
           KEEP_ALIVE_TIMEOUT_MS: "5000"
           REQUEST_BODY_LIMIT: 1mb
-          FEATURE_FLAGS: swagger_docs=false,rum_ingest=true
+          SWAGGER_ENABLED: "false"
+          FEATURE_FLAGS: rum_ingest=true
           OTEL_SERVICE_NAME: cv-api
           OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
           NEXT_PUBLIC_API_BASE_URL: http://api:3000
@@ -81,7 +82,7 @@ jobs:
           OPENBAO_ADDR: http://openbao:8200
           OPENBAO_TOKEN: ci-dummy-token
           OPENBAO_KV_MOUNT: kv
-          OPENBAO_SECRET_PATH: cv-web
+          OPENBAO_SECRET_PATH: cv
           OPENBAO_REQUIRED_KEYS_API: ADMIN_API_TOKEN
           OPENBAO_REQUIRED_KEYS_WEB: ADMIN_API_TOKEN,AUTH_SESSION_SECRET,TOLGEE_API_KEY
         run: |
@@ -97,8 +98,19 @@ jobs:
       - name: Build workspaces
         run: npm run build --workspaces
 
-      - name: Unit tests with coverage (api)
-        run: npm run test:cov -w @cv/api -- --watchman=false --ci
+      - name: Compose up (postgres_test + api_test) for coverage
+        run: docker compose -f docker/compose.ci.yml --profile test up -d --build postgres_test api_test
+
+      - name: Run migrations (test DB) for coverage
+        run: docker compose -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
+
+      - name: Unit tests with coverage (api_test container)
+        run: docker compose -f docker/compose.ci.yml --profile test exec -T api_test sh -lc "cd /app/apps/api && npm run test:cov -- --watchman=false --ci"
+
+      - name: Copy api coverage from container
+        run: |
+          rm -rf apps/api/coverage
+          docker compose -f docker/compose.ci.yml --profile test cp api_test:/app/apps/api/coverage apps/api/coverage
 
       - name: Upload api coverage
         if: always()
@@ -107,6 +119,10 @@ jobs:
           name: api-coverage
           path: apps/api/coverage
           if-no-files-found: warn
+
+      - name: Compose down (coverage stack)
+        if: always()
+        run: docker compose -f docker/compose.ci.yml down -v
 
   secrets-scan:
     name: Secrets Scan (Gitleaks)
@@ -177,10 +193,10 @@ jobs:
         run: docker compose -f docker/compose.ci.yml --profile test exec -T api_test npm run migration:run -w @cv/api
 
       - name: Integration tests (api)
-        run: npm run test:int:api
+        run: docker compose -f docker/compose.ci.yml --profile test exec -T api_test sh -lc "cd /app/apps/api && npm run test:int -- --watchman=false --detectOpenHandles"
 
       - name: E2E tests (api)
-        run: npm run test:e2e:api
+        run: docker compose -f docker/compose.ci.yml --profile test exec -T api_test sh -lc "cd /app/apps/api && npm run test:e2e -- --watchman=false --detectOpenHandles"
 
       - name: Export OpenAPI spec (api_test)
         run: |
@@ -188,10 +204,10 @@ jobs:
           docker compose -f docker/compose.ci.yml --profile test exec -T api_test sh -lc 'wget -qO- http://localhost:3000/docs-json' > artifacts/openapi.test.json
 
       - name: Regenerate web API contract
-        run: npm run contract:gen:web -- artifacts/openapi.test.json apps/web/src/lib/api/generated.ts
+        run: npm run contract:gen:web -- artifacts/openapi.test.json apps/ui/src/lib/api/generated.ts
 
       - name: Enforce API contract drift
-        run: git diff --exit-code -- apps/web/src/lib/api/generated.ts
+        run: git diff --exit-code -- apps/ui/src/lib/api/generated.ts
 
       - name: Backup/restore drill (test Postgres)
         run: COMPOSE_FILES="docker/compose.ci.yml" ./scripts/db-backup-restore-drill.sh
@@ -252,7 +268,7 @@ jobs:
       - name: Build prod images
         run: |
           docker build -f apps/api/Dockerfile --target prod -t cv-api:ci .
-          docker build -f apps/web/Dockerfile --target prod -t cv-web:ci .
+          docker build -f apps/ui/Dockerfile --target prod -t cv:ci .
 
       - name: Trivy scan (api image)
         uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # v0.34.1
@@ -268,7 +284,7 @@ jobs:
       - name: Trivy scan (web image)
         uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # v0.34.1
         with:
-          image-ref: cv-web:ci
+          image-ref: cv:ci
           format: table
           exit-code: '1'
           ignore-unfixed: true
@@ -289,7 +305,7 @@ jobs:
       - name: Generate SBOM (web image)
         uses: anchore/sbom-action@17ae1740179002c89186b61233e0f892c3118b11 # v0
         with:
-          image: cv-web:ci
+          image: cv:ci
           format: spdx-json
           output-file: artifacts/sbom-web.spdx.json
 

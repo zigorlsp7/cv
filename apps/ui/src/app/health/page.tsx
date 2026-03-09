@@ -3,9 +3,19 @@ import { getTranslator } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
+function resolveHealthApiUrl(base: string): string {
+  const normalized = base.replace(/\/+$/, "");
+  return normalized.endsWith("/v1")
+    ? `${normalized}/health`
+    : `${normalized}/v1/health`;
+}
+
 async function getHealth() {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const res = await fetch(`${base}/v1/health`, { cache: "no-store" });
+  if (!base) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL is required");
+  }
+  const res = await fetch(resolveHealthApiUrl(base), { cache: "no-store" });
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return res.json();
 }

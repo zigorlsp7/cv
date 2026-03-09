@@ -283,6 +283,26 @@ export async function getAuthSession(): Promise<AuthSession | null> {
   }
 }
 
+export function buildApiAuthHeaders(
+  session: AuthSession,
+): Record<string, string> | null {
+  const secret = readSessionSecret();
+  if (!secret) return null;
+
+  const exp = String(session.exp);
+  const name = session.name ?? '';
+  const payload = `${session.email}\n${session.role}\n${name}\n${exp}`;
+  const signature = sign(payload, secret);
+
+  return {
+    'x-auth-user-email': session.email,
+    'x-auth-user-role': session.role,
+    'x-auth-user-name': name,
+    'x-auth-user-exp': exp,
+    'x-auth-signature': signature,
+  };
+}
+
 export async function isAdminSession(): Promise<boolean> {
   const session = await getAuthSession();
   return session?.role === "admin";

@@ -6,15 +6,6 @@ PROJECT_NAME="cv-precommit"
 TEST_DB_VOLUME="${PROJECT_NAME}_pgdata_test"
 STARTED_POSTGRES=0
 STARTED_API_TEST=0
-TARGET="${1:-all}"
-
-case "$TARGET" in
-  migration|int|e2e|all) ;;
-  *)
-    echo "Usage: $0 [migration|int|e2e|all]" >&2
-    exit 1
-    ;;
-esac
 
 cleanup() {
   if [ "$STARTED_API_TEST" -eq 1 ]; then
@@ -54,11 +45,4 @@ if [ -z "$api_container" ]; then
 fi
 
 docker compose -f "$COMPOSE_FILE" exec -T api_test sh -lc "cd /app/apps/api && npm run migration:run"
-
-if [ "$TARGET" = "int" ] || [ "$TARGET" = "all" ]; then
-  docker compose -f "$COMPOSE_FILE" exec -T api_test sh -lc "cd /app/apps/api && npm run test:int -- --watchman=false --detectOpenHandles"
-fi
-
-if [ "$TARGET" = "e2e" ] || [ "$TARGET" = "all" ]; then
-  docker compose -f "$COMPOSE_FILE" exec -T api_test sh -lc "cd /app/apps/api && npm run test:e2e -- --watchman=false --detectOpenHandles"
-fi
+docker compose -f "$COMPOSE_FILE" exec -T api_test sh -lc "cd /app/apps/api && npm run test:cov -- --watchman=false --ci"

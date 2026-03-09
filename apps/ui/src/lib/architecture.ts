@@ -42,12 +42,19 @@ type Envelope<T> = {
   data: T;
 };
 
+function resolveArchitectureApiUrl(base: string): string {
+  const normalized = base.replace(/\/+$/, '');
+  return normalized.endsWith('/v1')
+    ? `${normalized}/architecture/graph`
+    : `${normalized}/v1/architecture/graph`;
+}
+
 export async function getArchitectureGraph(): Promise<ArchitectureGraph> {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!base) {
     throw new Error('NEXT_PUBLIC_API_BASE_URL is required to load architecture graph');
   }
-  const response = await fetch(`${base}/v1/architecture/graph`, {
+  const response = await fetch(resolveArchitectureApiUrl(base), {
     cache: 'no-store',
   });
 
