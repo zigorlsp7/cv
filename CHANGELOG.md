@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.13](https://github.com/zigorlsp7/cv/compare/v0.1.12...v0.1.13) (2026-03-09)
+
+
+### Bug Fixes
+
+* **release:** document release-please user-facing commit rule ([#90](https://github.com/zigorlsp7/cv/issues/90)) ([0f09535](https://github.com/zigorlsp7/cv/commit/0f095356aae86b0e0c17739b33c9586df21fafe0))
+
 ## [0.1.12](https://github.com/zigorlsp7/cv/compare/v0.1.11...v0.1.12) (2026-03-02)
 
 
