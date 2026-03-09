@@ -30,3 +30,8 @@ CI job:
 Config:
 
 - `.gitleaks.toml`
+
+## Release Please trigger notes
+
+- Release Please skips publishing when no user-facing conventional commits are found since the last release.
+- Use at least one `fix:` or `feat:` commit in the merged PR when you need a new release to be created.
