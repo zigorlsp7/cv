@@ -50,7 +50,7 @@ export type ApiOperation = {
   method: 'PUT';
   path: '/v1/cv';
   operationId: 'CvController_upsertProfile_v1';
-  responseCodes: ['200'];
+  responseCodes: ['200', '401', '403'];
 };
 
 export const API_OPERATION_COUNT = 10 as const;
@@ -133,7 +133,9 @@ export const API_OPERATIONS = [
     "path": "/v1/cv",
     "operationId": "CvController_upsertProfile_v1",
     "responseCodes": [
-      "200"
+      "200",
+      "401",
+      "403"
     ]
   }
 ] as const;
