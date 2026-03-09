@@ -42,6 +42,7 @@ RUN npm run build
 FROM node:25-alpine AS prod
 WORKDIR /app/apps/api
 ENV NODE_ENV=production
+RUN apk upgrade --no-cache zlib
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=prod-deps /app/apps/api/node_modules /app/apps/api/node_modules
 COPY --from=build /app/apps/api/dist /app/apps/api/dist
