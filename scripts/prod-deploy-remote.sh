@@ -7,7 +7,7 @@ Usage:
   $0 \
     --release-dir <path> \
     --region <aws-region> \
-    --app-ssm-prefix </cv-web/prod/app> \
+    --app-ssm-prefix </cv/prod/app> \
     --api-image <ecr-uri:tag> \
     --web-image <ecr-uri:tag> \
     --release-tag <tag>
@@ -262,6 +262,9 @@ fi
 cd "$RELEASE_DIR"
 
 APP_ENV_FILE="docker/.env.app.prod"
+OPENBAO_LOCAL_ADDR="http://127.0.0.1:8200"
+OPENBAO_KV_MOUNT="kv"
+OPENBAO_SECRET_PATH="cv"
 
 fetch_ssm_path_to_env_file() {
   local prefix="$1"
@@ -306,12 +309,7 @@ upsert_env_var "$APP_ENV_FILE" "API_IMAGE" "$API_IMAGE"
 upsert_env_var "$APP_ENV_FILE" "WEB_IMAGE" "$WEB_IMAGE"
 upsert_env_var "$APP_ENV_FILE" "NEXT_PUBLIC_RELEASE" "$RELEASE_TAG"
 
-network_name="$(grep -E '^CV_SHARED_NETWORK=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
-if [ -z "$network_name" ]; then
-  network_name="platform_ops_shared"
-fi
-
-docker network create "$network_name" >/dev/null 2>&1 || true
+docker network create "platform_ops_shared" >/dev/null 2>&1 || true
 
 echo "[deploy] Waiting for OpenBao health"
 openbao_ready="false"
@@ -335,6 +333,45 @@ if [ "$openbao_ready" != "true" ]; then
   echo "OpenBao did not become ready (last_health_code=$openbao_code). Ensure platform-ops is running on this host." >&2
   exit 1
 fi
+
+openbao_token="$(grep -E '^OPENBAO_TOKEN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+if [ -z "$openbao_token" ]; then
+  echo "OPENBAO_TOKEN must be present in $APP_ENV_FILE" >&2
+  exit 1
+fi
+
+openbao_secret_url="${OPENBAO_LOCAL_ADDR}/v1/${OPENBAO_KV_MOUNT}/data/${OPENBAO_SECRET_PATH}"
+openbao_secret_body_file="$(mktemp)"
+
+openbao_secret_code="$(curl -s -o "$openbao_secret_body_file" -w '%{http_code}' -H "X-Vault-Token: $openbao_token" "$openbao_secret_url" || true)"
+if [ "$openbao_secret_code" != "200" ]; then
+  echo "Failed to read OpenBao secret ${OPENBAO_KV_MOUNT}/${OPENBAO_SECRET_PATH} with OPENBAO_TOKEN (status=$openbao_secret_code)" >&2
+  cat "$openbao_secret_body_file" >&2 || true
+  rm -f "$openbao_secret_body_file"
+  exit 1
+fi
+
+postgres_password="$(
+  SECRET_BODY_FILE="$openbao_secret_body_file" node -e '
+const fs = require("node:fs");
+let payload;
+try {
+  payload = JSON.parse(fs.readFileSync(process.env.SECRET_BODY_FILE, "utf8"));
+} catch (err) {
+  console.error("Failed to parse OpenBao secret payload:", err.message);
+  process.exit(1);
+}
+const value = payload?.data?.data?.POSTGRES_PASSWORD;
+if (value === undefined || value === null || String(value).trim().length === 0) {
+  console.error("OpenBao secret is missing required key: POSTGRES_PASSWORD");
+  process.exit(1);
+}
+process.stdout.write(String(value));
+'
+)"
+rm -f "$openbao_secret_body_file"
+
+export POSTGRES_PASSWORD="$postgres_password"
 
 login_ecr_for_image "$API_IMAGE"
 login_ecr_for_image "$WEB_IMAGE"

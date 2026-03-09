@@ -11,7 +11,7 @@ Current source of truth is:
 
 Key architecture update:
 
-- `cv-web` owns only app build/deploy/runtime.
+- `cv` owns only app build/deploy/runtime.
 - `platform-ops` owns infrastructure and ops services (OpenBao, Tolgee, observability).
 
 Do not use old commands that reference removed files such as `docker/compose.yml`, `docker/compose.ops.*`, or `docker/.env.ops.*`.

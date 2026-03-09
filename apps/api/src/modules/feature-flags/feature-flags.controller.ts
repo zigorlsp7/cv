@@ -17,8 +17,8 @@ export class FeatureFlagsController {
         type: 'boolean',
       },
       example: {
-        swagger_docs: true,
         rum_ingest: true,
+        beta_profile_editor: false,
       },
     },
   })
@@ -26,4 +26,3 @@ export class FeatureFlagsController {
     return this.flags.getAll();
   }
 }
-

@@ -2,7 +2,7 @@
 
 Observability runtime (Grafana, Prometheus, Loki, tracing backend, alerting) is owned by `platform-ops`.
 
-`cv-web` responsibilities are:
+`cv` responsibilities are:
 
 1. Emit API metrics and health endpoints.
 2. Emit API/web logs to stdout/stderr for collection by platform agent.

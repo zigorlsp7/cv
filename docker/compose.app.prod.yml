@@ -1,13 +1,13 @@
-name: cvweb-app-prod
+name: cv-app-prod
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_USER: app
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_DB: cv
     volumes:
       - app-prod-pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,41 +19,45 @@ services:
       driver: "json-file"
       options:
         labels: "com.docker.compose.service"
-    networks: [cv_shared]
+    networks:
+      cv_shared:
+        aliases:
+          - cv-postgres
 
   api:
     image: ${API_IMAGE:?API_IMAGE is required}
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:?NODE_ENV is required}
-      PORT: ${API_PORT:?API_PORT is required}
-      LOG_LEVEL: ${LOG_LEVEL:?LOG_LEVEL is required}
-      DB_HOST: ${DB_HOST:?DB_HOST is required}
-      DB_PORT: ${DB_PORT:?DB_PORT is required}
-      DB_USER: ${DB_USER:?DB_USER is required}
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: info
+      DB_HOST: cv-postgres
+      DB_PORT: 5432
+      DB_USER: app
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      DB_NAME: cv
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
-      CORS_METHODS: ${CORS_METHODS:?CORS_METHODS is required}
-      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:?CORS_ALLOWED_HEADERS is required}
-      CORS_EXPOSED_HEADERS: ${CORS_EXPOSED_HEADERS:?CORS_EXPOSED_HEADERS is required}
-      CORS_CREDENTIALS: ${CORS_CREDENTIALS:?CORS_CREDENTIALS is required}
-      CORS_MAX_AGE_SECONDS: ${CORS_MAX_AGE_SECONDS:?CORS_MAX_AGE_SECONDS is required}
-      RATE_LIMIT_TTL_MS: ${RATE_LIMIT_TTL_MS:?RATE_LIMIT_TTL_MS is required}
-      RATE_LIMIT_LIMIT: ${RATE_LIMIT_LIMIT:?RATE_LIMIT_LIMIT is required}
+      CORS_METHODS: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
+      CORS_ALLOWED_HEADERS: Content-Type,Authorization,X-Request-Id
+      CORS_EXPOSED_HEADERS: X-Request-Id
+      CORS_CREDENTIALS: true
+      CORS_MAX_AGE_SECONDS: 600
+      RATE_LIMIT_TTL_MS: 60000
+      RATE_LIMIT_LIMIT: 100
       TRUST_PROXY: ${TRUST_PROXY:?TRUST_PROXY is required}
-      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:?REQUEST_TIMEOUT_MS is required}
-      HEADERS_TIMEOUT_MS: ${HEADERS_TIMEOUT_MS:?HEADERS_TIMEOUT_MS is required}
-      KEEP_ALIVE_TIMEOUT_MS: ${KEEP_ALIVE_TIMEOUT_MS:?KEEP_ALIVE_TIMEOUT_MS is required}
-      REQUEST_BODY_LIMIT: ${REQUEST_BODY_LIMIT:?REQUEST_BODY_LIMIT is required}
-      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:?OTEL_SERVICE_NAME is required}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?OTEL_EXPORTER_OTLP_ENDPOINT is required}
-      OPENBAO_ADDR: ${OPENBAO_ADDR:?OPENBAO_ADDR is required}
+      REQUEST_TIMEOUT_MS: 30000
+      HEADERS_TIMEOUT_MS: 30000
+      KEEP_ALIVE_TIMEOUT_MS: 5000
+      REQUEST_BODY_LIMIT: 1mb
+      OTEL_SERVICE_NAME: cv-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OPENBAO_ADDR: http://openbao:8200
       OPENBAO_TOKEN: ${OPENBAO_TOKEN:?OPENBAO_TOKEN is required}
-      OPENBAO_KV_MOUNT: ${OPENBAO_KV_MOUNT:?OPENBAO_KV_MOUNT is required}
-      OPENBAO_SECRET_PATH: ${OPENBAO_SECRET_PATH:?OPENBAO_SECRET_PATH is required}
-      OPENBAO_REQUIRED_KEYS: ${OPENBAO_REQUIRED_KEYS_API:?OPENBAO_REQUIRED_KEYS_API is required}
-      FEATURE_FLAGS: ${FEATURE_FLAGS:?FEATURE_FLAGS is required}
+      OPENBAO_KV_MOUNT: kv
+      OPENBAO_SECRET_PATH: cv
+      OPENBAO_REQUIRED_KEYS: AUTH_SESSION_SECRET
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:?SWAGGER_ENABLED is required}
+      FEATURE_FLAGS: rum_ingest=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,32 +66,38 @@ services:
       options:
         labels: "com.docker.compose.service"
     command: ["node", "/app/scripts/openbao-run.mjs", "--", "sh", "-lc", "node /app/apps/api/node_modules/typeorm/cli.js -d dist/typeorm.datasource.js migration:run && exec node dist/main.js"]
-    networks: [cv_shared]
+    networks:
+      cv_shared:
+        aliases:
+          - cv-api
 
   web:
     image: ${WEB_IMAGE:?WEB_IMAGE is required}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL is required}
-      NEXT_PUBLIC_RUM_ENABLED: ${NEXT_PUBLIC_RUM_ENABLED:?NEXT_PUBLIC_RUM_ENABLED is required}
-      NEXT_PUBLIC_RUM_ENDPOINT: ${NEXT_PUBLIC_RUM_ENDPOINT:?NEXT_PUBLIC_RUM_ENDPOINT is required}
+      NEXT_PUBLIC_RUM_ENABLED: true
       NEXT_PUBLIC_RELEASE: ${NEXT_PUBLIC_RELEASE:?NEXT_PUBLIC_RELEASE is required}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID?GOOGLE_CLIENT_ID must be set}
-      I18N_SOURCE: ${I18N_SOURCE:?I18N_SOURCE is required}
-      TOLGEE_API_URL: ${TOLGEE_API_URL:?TOLGEE_API_URL is required}
-      TOLGEE_PROJECT_ID: ${TOLGEE_PROJECT_ID:?TOLGEE_PROJECT_ID is required}
-      OPENBAO_ADDR: ${OPENBAO_ADDR:?OPENBAO_ADDR is required}
+      TOLGEE_API_URL: http://tolgee:8080
+      TOLGEE_PROJECT_ID: 2
+      OPENBAO_ADDR: http://openbao:8200
       OPENBAO_TOKEN: ${OPENBAO_TOKEN:?OPENBAO_TOKEN is required}
-      OPENBAO_KV_MOUNT: ${OPENBAO_KV_MOUNT:?OPENBAO_KV_MOUNT is required}
-      OPENBAO_SECRET_PATH: ${OPENBAO_SECRET_PATH:?OPENBAO_SECRET_PATH is required}
-      OPENBAO_REQUIRED_KEYS: ${OPENBAO_REQUIRED_KEYS_WEB:?OPENBAO_REQUIRED_KEYS_WEB is required}
+      OPENBAO_KV_MOUNT: kv
+      OPENBAO_SECRET_PATH: cv
+      OPENBAO_REQUIRED_KEYS: AUTH_SESSION_SECRET,TOLGEE_API_KEY,GOOGLE_CLIENT_SECRET,ADMIN_GOOGLE_EMAILS
     depends_on:
       - api
     logging:
       driver: "json-file"
       options:
         labels: "com.docker.compose.service"
-    command: ["node", "/app/scripts/openbao-run.mjs", "--", "node", "apps/web/server.js"]
+    command:
+      [
+        "sh",
+        "-lc",
+        "until wget -qO- http://cv-api:3000/v1/health/ready >/dev/null 2>&1; do sleep 2; done; exec node /app/scripts/openbao-run.mjs -- node apps/ui/server.js",
+      ]
     networks: [cv_shared]
 
   alloy:
@@ -125,7 +135,7 @@ services:
 
 networks:
   cv_shared:
-    name: ${CV_SHARED_NETWORK:?CV_SHARED_NETWORK is required}
+    name: platform_ops_shared
     external: true
 
 volumes:

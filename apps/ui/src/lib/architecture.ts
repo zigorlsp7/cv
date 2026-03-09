@@ -1,0 +1,70 @@
+import 'server-only';
+
+export type ArchitectureLayer =
+  | 'frontend'
+  | 'api'
+  | 'data'
+  | 'observability'
+  | 'delivery';
+
+export type ArchitectureNode = {
+  id: string;
+  label: string;
+  layer: ArchitectureLayer;
+  kind: 'ui' | 'service' | 'database' | 'pipeline' | 'gateway';
+  summary: string;
+  x: number;
+  y: number;
+};
+
+export type ArchitectureEdge = {
+  from: string;
+  to: string;
+  relation: string;
+};
+
+export type ArchitectureGraph = {
+  version: string;
+  generatedAt: string;
+  layers: ArchitectureLayer[];
+  featureFlags: Record<string, boolean>;
+  nodes: ArchitectureNode[];
+  edges: ArchitectureEdge[];
+  stats: {
+    nodeCount: number;
+    edgeCount: number;
+  };
+};
+
+type Envelope<T> = {
+  ok: boolean;
+  requestId: string;
+  data: T;
+};
+
+function resolveArchitectureApiUrl(base: string): string {
+  const normalized = base.replace(/\/+$/, '');
+  return normalized.endsWith('/v1')
+    ? `${normalized}/architecture/graph`
+    : `${normalized}/v1/architecture/graph`;
+}
+
+export async function getArchitectureGraph(): Promise<ArchitectureGraph> {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL is required to load architecture graph');
+  }
+  const response = await fetch(resolveArchitectureApiUrl(base), {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load architecture graph: ${response.status}`);
+  }
+
+  const payload = (await response.json()) as Envelope<ArchitectureGraph> | ArchitectureGraph;
+  if ('data' in payload) {
+    return payload.data;
+  }
+  return payload;
+}

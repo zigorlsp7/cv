@@ -1,11 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { createHmac } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { configureApp } from '../src/bootstrap/app-bootstrap';
 import { config } from '../src/config/app.config';
 import { truncateTestTables } from './support/db-cleanup';
+
+function buildSessionHeaders(role: 'admin' | 'user') {
+  const email = role === 'admin' ? 'admin@example.com' : 'user@example.com';
+  const name = role === 'admin' ? 'Admin User' : 'Regular User';
+  const exp = String(Math.floor(Date.now() / 1000) + 300);
+  const payload = `${email}\n${role}\n${name}\n${exp}`;
+  const signature = createHmac('sha256', config.auth.sessionSecret)
+    .update(payload)
+    .digest('base64url');
+
+  return {
+    'x-auth-user-email': email,
+    'x-auth-user-role': role,
+    'x-auth-user-name': name,
+    'x-auth-user-exp': exp,
+    'x-auth-signature': signature,
+  };
+}
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -71,7 +90,6 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body.ok).toBe(true);
-        expect(body.data?.swagger_docs).toBeDefined();
         expect(body.data?.rum_ingest).toBeDefined();
       });
   });
@@ -149,7 +167,7 @@ describe('AppController (e2e)', () => {
 
     await request(app.getHttpServer())
       .put('/v1/cv')
-      .set('x-admin-token', config.auth.adminApiToken)
+      .set(buildSessionHeaders('admin'))
       .send(payload)
       .expect(200)
       .expect(({ body }) => {
@@ -167,7 +185,7 @@ describe('AppController (e2e)', () => {
       });
   });
 
-  it('/v1/cv (PUT) rejects missing admin token', async () => {
+  it('/v1/cv (PUT) rejects missing session headers', async () => {
     const payload = {
       fullName: 'Jane Doe',
       role: 'Platform Engineer',
@@ -217,5 +235,58 @@ describe('AppController (e2e)', () => {
       .put('/v1/cv')
       .send(payload)
       .expect(401);
+  });
+
+  it('/v1/cv (PUT) rejects non-admin session role', async () => {
+    const payload = {
+      fullName: 'Jane Doe',
+      role: 'Platform Engineer',
+      tagline: 'Builds reliable systems.',
+      chips: ['Location: Remote', 'Email: jane@example.com'],
+      sections: [
+        {
+          id: 'profile-summary',
+          title: 'Profile Summary',
+          summary: 'Short summary',
+          bullets: ['Strong backend ownership'],
+        },
+        {
+          id: 'experience-highlights',
+          title: 'Experience Highlights',
+          summary: 'Most relevant positions and achievements.',
+          bullets: ['Drove reliability and delivery improvements'],
+        },
+        {
+          id: 'skills',
+          title: 'Skills',
+          summary: 'Technical capabilities grouped by category.',
+          bullets: ['TypeScript, NestJS, PostgreSQL'],
+        },
+        {
+          id: 'projects',
+          title: 'Projects',
+          summary: 'Flagship projects that prove execution and ownership.',
+          bullets: ['Built and hardened a production-ready web skeleton'],
+        },
+        {
+          id: 'education',
+          title: 'Education',
+          summary: 'Formal education and certifications.',
+          bullets: ['Computer Science degree'],
+        },
+        {
+          id: 'languages',
+          title: 'Languages',
+          summary: 'Spoken languages and proficiency.',
+          bullets: ['English: Professional', 'Spanish: Native'],
+        },
+      ],
+    };
+
+    await request(app.getHttpServer())
+      .put('/v1/cv')
+      .set(buildSessionHeaders('user'))
+      .send(payload)
+      .expect(403);
   });
 });

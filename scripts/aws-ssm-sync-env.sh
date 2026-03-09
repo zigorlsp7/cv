@@ -7,8 +7,8 @@ Usage:
   $0 --file <env-file> --prefix </ssm/prefix> --region <aws-region> [--secure-keys key1,key2] [--dry-run]
 
 Examples:
-  $0 --file docker/.env.app.prod --prefix /cv-web/prod/app --region us-east-1 --secure-keys OPENBAO_TOKEN,DB_PASSWORD,POSTGRES_PASSWORD
-  $0 --file docker/.env.app.prod --prefix /cv-web/prod/app --region us-east-1 --dry-run
+  $0 --file docker/.env.app.prod --prefix /cv/prod/app --region us-east-1 --secure-keys OPENBAO_TOKEN
+  $0 --file docker/.env.app.prod --prefix /cv/prod/app --region us-east-1 --dry-run
 USAGE
 }
 

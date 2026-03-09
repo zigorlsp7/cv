@@ -1,44 +1,44 @@
 # Environment Variable Management
 
-This document defines the source of truth for `cv-web` runtime config after the ops split.
+This document defines the source of truth for `cv` runtime config after the ops split.
 
 ## Canonical Sources
 
 | Class | Examples | Local Source | Production Source | Notes |
 | --- | --- | --- | --- | --- |
-| App runtime non-secrets | `WEB_DOMAIN`, `API_DOMAIN`, `CORS_ORIGINS`, `DB_HOST`, `NEXT_PUBLIC_API_BASE_URL`, `TOLGEE_API_URL`, `TOLGEE_PROJECT_ID` | `docker/.env.app.local` | SSM path `/cv-web/prod/app` | Deploy rewrites EC2 `docker/.env.app.prod` from this SSM prefix on every release. |
-| App runtime secrets | `ADMIN_API_TOKEN`, `AUTH_SESSION_SECRET`, `TOLGEE_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ADMIN_GOOGLE_EMAILS` | OpenBao KV v2 path `kv/cv-web` (set manually) | OpenBao KV v2 path `kv/cv-web` | Read at runtime via `scripts/openbao-run.mjs`. |
-| OpenBao access pointer | `OPENBAO_TOKEN` | `docker/.env.app.local` | SSM `/cv-web/prod/app/OPENBAO_TOKEN` (`SecureString`) | Token must allow read on `kv/data/cv-web`. |
+| App runtime non-secrets | `WEB_DOMAIN`, `API_DOMAIN`, `CORS_ORIGINS`, `TRUST_PROXY`, `SWAGGER_ENABLED`, `NEXT_PUBLIC_API_BASE_URL` | `docker/.env.app.local` | SSM path `/cv/prod/app` | Deploy rewrites EC2 `docker/.env.app.prod` from this SSM prefix on every release. |
+| App runtime secrets | `AUTH_SESSION_SECRET`, `TOLGEE_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ADMIN_GOOGLE_EMAILS`, `POSTGRES_PASSWORD` | OpenBao KV v2 path `kv/cv` (set manually) | OpenBao KV v2 path `kv/cv` | Read at runtime via `scripts/openbao-run.mjs` (and deployment/startup scripts for `POSTGRES_PASSWORD`). |
+| OpenBao access pointer | `OPENBAO_TOKEN` | `docker/.env.app.local` | SSM `/cv/prod/app/OPENBAO_TOKEN` (`SecureString`) | Token must allow read on `kv/data/cv`. |
 | Deploy infra vars | `AWS_REGION`, `AWS_DEPLOY_BUCKET`, `AWS_DEPLOY_INSTANCE_ID`, `AWS_ECR_*`, `AWS_SSM_APP_PREFIX` | n/a | GitHub Environment `production` vars | Usually exported from `platform-ops` Terraform outputs. |
 | Deploy infra secret | `AWS_DEPLOY_ROLE_ARN` | n/a | GitHub Environment `production` secret | OIDC role assumed by deploy workflow. |
-| Web build-time vars | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_RUM_ENABLED`, `NEXT_PUBLIC_RUM_ENDPOINT` | local app env | GitHub Environment `production` vars | Baked into web image during deploy build. |
+| Web build-time vars | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_RELEASE` | local app env / deploy script | app env (SSM + deploy script upsert) | Baked into web image during deploy build. |
 
 ## OpenBao Contract
 
-Use these values everywhere:
+These values are fixed in app compose/scripts (not user-managed env vars):
 
 - `OPENBAO_KV_MOUNT=kv`
-- `OPENBAO_SECRET_PATH=cv-web`
+- `OPENBAO_SECRET_PATH=cv`
 
 `openbao-run` calls:
 
-- `http://<OPENBAO_ADDR>/v1/kv/data/cv-web`
+- `http://<OPENBAO_ADDR>/v1/kv/data/cv`
 
 Required policy for app token:
 
 ```hcl
-path "kv/data/cv-web" {
+path "kv/data/cv" {
   capabilities = ["read"]
 }
 ```
 
 ## Rules
 
-1. Do not manually edit `/opt/cv-web/releases/*/docker/.env.app.prod` for long-term fixes.
-2. Change app non-secrets in SSM (`/cv-web/prod/app`), then redeploy.
-3. Change runtime secrets in OpenBao (`kv/cv-web`), then recreate `api`/`web`.
-4. Change `NEXT_PUBLIC_*` in GitHub `production` vars, then deploy a new release.
-5. Keep compose interpolation strict (`${VAR:?message}`), no hardcoded runtime literals in compose.
+1. Do not manually edit `/opt/cv/releases/*/docker/.env.app.prod` for long-term fixes.
+2. Change app non-secrets in SSM (`/cv/prod/app`), then redeploy.
+3. Change runtime secrets in OpenBao (`kv/cv`), then recreate `api`/`web`.
+4. Change app env values in SSM (for example `NEXT_PUBLIC_API_BASE_URL`), then deploy a new release.
+5. Keep compose interpolation strict for environment-dependent values; stable platform constants are intentionally hardcoded in compose/scripts.
 
 ## Quick Checks
 
@@ -46,7 +46,7 @@ List SSM app keys:
 
 ```bash
 aws ssm get-parameters-by-path \
-  --path /cv-web/prod/app \
+  --path /cv/prod/app \
   --recursive \
   --with-decryption \
   --query 'Parameters[].Name' \
@@ -65,7 +65,7 @@ Check app token read access:
 ```bash
 curl -s -o /tmp/bao_can_read.json -w "%{http_code}\n" \
   -H "X-Vault-Token: $OPENBAO_TOKEN" \
-  "http://127.0.0.1:8200/v1/kv/data/cv-web"
+  "http://127.0.0.1:8200/v1/kv/data/cv"
 cat /tmp/bao_can_read.json
 ```
 

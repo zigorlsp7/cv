@@ -3,6 +3,14 @@ set -euo pipefail
 
 APP_ENV_FILE="docker/.env.app.local"
 OPENBAO_LOCAL_ADDR="http://localhost:8200"
+SHARED_NETWORK="platform_ops_shared"
+OPENBAO_KV_MOUNT="kv"
+OPENBAO_SECRET_PATH="cv"
+OPENBAO_REQUIRED_KEYS_API="AUTH_SESSION_SECRET"
+OPENBAO_REQUIRED_KEYS_WEB="AUTH_SESSION_SECRET,TOLGEE_API_KEY,GOOGLE_CLIENT_SECRET,ADMIN_GOOGLE_EMAILS"
+OPENBAO_REQUIRED_KEYS_DB="POSTGRES_PASSWORD"
+DB_NAME="cv"
+DB_USER="app"
 
 read_env_var_from_file() {
   local file="$1"
@@ -28,30 +36,24 @@ if [ ! -f "$APP_ENV_FILE" ]; then
   exit 1
 fi
 
-network_name="$(read_env_var_from_file "$APP_ENV_FILE" "CV_SHARED_NETWORK")"
-if [ -z "$network_name" ]; then
-  echo "CV_SHARED_NETWORK is required in $APP_ENV_FILE" >&2
-  exit 1
-fi
-docker network create "$network_name" >/dev/null 2>&1 || true
+docker network create "$SHARED_NETWORK" >/dev/null 2>&1 || true
 
-openbao_addr="$(read_env_var_from_file "$APP_ENV_FILE" "OPENBAO_ADDR")"
 openbao_token="$(read_env_var_from_file "$APP_ENV_FILE" "OPENBAO_TOKEN")"
-openbao_kv_mount="$(read_env_var_from_file "$APP_ENV_FILE" "OPENBAO_KV_MOUNT")"
-openbao_secret_path="$(read_env_var_from_file "$APP_ENV_FILE" "OPENBAO_SECRET_PATH")"
-required_keys_api="$(read_env_var_from_file "$APP_ENV_FILE" "OPENBAO_REQUIRED_KEYS_API")"
-required_keys_web="$(read_env_var_from_file "$APP_ENV_FILE" "OPENBAO_REQUIRED_KEYS_WEB")"
 
-if [ -z "$openbao_addr" ] || [ -z "$openbao_token" ] || [ -z "$openbao_kv_mount" ] || [ -z "$openbao_secret_path" ]; then
-  echo "OPENBAO_ADDR, OPENBAO_TOKEN, OPENBAO_KV_MOUNT and OPENBAO_SECRET_PATH are required in $APP_ENV_FILE" >&2
+if [ -z "$openbao_token" ]; then
+  echo "OPENBAO_TOKEN is required in $APP_ENV_FILE" >&2
   exit 1
 fi
+
+openbao_kv_mount="$OPENBAO_KV_MOUNT"
+openbao_secret_path="$OPENBAO_SECRET_PATH"
+required_keys_api="$OPENBAO_REQUIRED_KEYS_API"
+required_keys_web="$OPENBAO_REQUIRED_KEYS_WEB"
+required_keys_db="$OPENBAO_REQUIRED_KEYS_DB"
+db_name="$DB_NAME"
+db_user="$DB_USER"
 
 unset_compose_shell_overrides "$APP_ENV_FILE"
-if [ "$openbao_secret_path" != "cv-web" ]; then
-  echo "OPENBAO_SECRET_PATH must be cv-web in $APP_ENV_FILE (got $openbao_secret_path)" >&2
-  exit 1
-fi
 
 echo "Using OpenBao path: ${openbao_kv_mount}/${openbao_secret_path}"
 
@@ -116,7 +118,7 @@ if [ "$secret_code" != "200" ]; then
   exit 1
 fi
 
-required_keys_csv="${required_keys_api},${required_keys_web}"
+required_keys_csv="${required_keys_api},${required_keys_web},${required_keys_db}"
 if [ -n "${required_keys_csv//,/}" ]; then
   REQUIRED_KEYS="$required_keys_csv" SECRET_BODY_FILE="$secret_body_file" node -e '
 const fs = require("node:fs");
@@ -152,6 +154,54 @@ if (missing.length > 0) {
 '
 fi
 
+postgres_password="$(
+  SECRET_BODY_FILE="$secret_body_file" node -e '
+const fs = require("node:fs");
+let payload;
+try {
+  payload = JSON.parse(fs.readFileSync(process.env.SECRET_BODY_FILE, "utf8"));
+} catch (err) {
+  console.error("Failed to parse OpenBao secret payload:", err.message);
+  process.exit(1);
+}
+const value = payload?.data?.data?.POSTGRES_PASSWORD;
+if (value === undefined || value === null || String(value).trim().length === 0) {
+  console.error("OpenBao secret path is missing required key: POSTGRES_PASSWORD");
+  process.exit(1);
+}
+process.stdout.write(String(value));
+'
+)"
+export POSTGRES_PASSWORD="$postgres_password"
+
+echo "Ensuring PostgreSQL database exists: $db_name"
+docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.local.yml up -d postgres
+
+i=1
+while [ $i -le 60 ]; do
+  if docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.local.yml exec -T postgres \
+    sh -lc "pg_isready -U \"$db_user\" -d postgres >/dev/null 2>&1"; then
+    break
+  fi
+  sleep 2
+  i=$((i + 1))
+done
+
+if [ $i -gt 60 ]; then
+  echo "Postgres did not become ready in time." >&2
+  exit 1
+fi
+
+db_exists="$(
+  docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.local.yml exec -T postgres \
+    sh -lc "psql -U \"$db_user\" -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname = '$db_name'\""
+)"
+db_exists="$(printf '%s' "$db_exists" | tr -d '[:space:]')"
+
+if [ "$db_exists" != "1" ]; then
+  docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.local.yml exec -T postgres \
+    sh -lc "psql -U \"$db_user\" -d postgres -c \"CREATE DATABASE \\\"$db_name\\\";\""
+fi
 
 docker compose --env-file "$APP_ENV_FILE" -f docker/compose.app.local.yml up -d --build --force-recreate --remove-orphans
 echo "App stack started (API runs migrations on startup)."

@@ -10,7 +10,7 @@ This template includes a lightweight browser RUM path that can be enabled when U
 
 ## Web configuration
 
-Set in `apps/web` runtime:
+Set in `apps/ui` runtime:
 
 - `NEXT_PUBLIC_RUM_ENABLED=true`
 - `NEXT_PUBLIC_RUM_ENDPOINT=http://localhost:3000/v1/rum/events` (or your deployed API URL)

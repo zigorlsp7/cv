@@ -1,6 +1,6 @@
 # Terraform Layout
 
-`cv-web` no longer owns the primary production infrastructure Terraform.
+`cv` no longer owns the primary production infrastructure Terraform.
 
 Current model:
 

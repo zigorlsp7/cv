@@ -12,12 +12,14 @@ If configuration is invalid, startup fails immediately (fail-fast).
 
 ## Environment loading
 
-The loader chooses env file by `NODE_ENV`:
+The API reads configuration directly from process environment variables.
 
-- `test` -> `apps/api/.env.test`
-- `development` / `production` -> `apps/api/.env`
+For this repository, envs are injected by Docker Compose:
 
-`NODE_ENV` must already exist in process env (startup fails before file loading if it is missing).
+- app runtime: `docker/.env.app.*` -> `docker/compose.app.*.yml`
+- test runtime: `docker/compose.precommit.yml` / `docker/compose.ci.yml`
+
+`NODE_ENV` must already exist in process env (startup validation fails if it is missing).
 
 System environment variables still take precedence over file values.
 
@@ -48,8 +50,9 @@ System environment variables still take precedence over file values.
 | `REQUEST_BODY_LIMIT` | no | `1mb` | JSON/urlencoded body max size |
 | `OTEL_SERVICE_NAME` | no | `cv-api` | OpenTelemetry service name |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | no | `http://localhost:4318` | OTLP collector endpoint |
-| `ADMIN_API_TOKEN` | yes | - | Token required for admin API write endpoints (`x-admin-token`) |
-| `FEATURE_FLAGS` | no | empty | Comma-separated feature flags (example: `swagger_docs=true,rum_ingest=true`) |
+| `AUTH_SESSION_SECRET` | yes | - | HMAC secret used to validate signed session headers for protected API writes |
+| `SWAGGER_ENABLED` | yes | - | Enables Swagger docs endpoint (`/docs`) |
+| `FEATURE_FLAGS` | no | empty | Comma-separated feature flags (example: `rum_ingest=true`) |
 
 ## Validation rules
 
