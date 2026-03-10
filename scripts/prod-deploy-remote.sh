@@ -367,24 +367,18 @@ if [ "$openbao_secret_code" != "200" ]; then
   exit 1
 fi
 
-postgres_password="$(
-  SECRET_BODY_FILE="$openbao_secret_body_file" node -e '
-const fs = require("node:fs");
-let payload;
-try {
-  payload = JSON.parse(fs.readFileSync(process.env.SECRET_BODY_FILE, "utf8"));
-} catch (err) {
-  console.error("Failed to parse OpenBao secret payload:", err.message);
-  process.exit(1);
-}
-const value = payload?.data?.data?.POSTGRES_PASSWORD;
-if (value === undefined || value === null || String(value).trim().length === 0) {
-  console.error("OpenBao secret is missing required key: POSTGRES_PASSWORD");
-  process.exit(1);
-}
-process.stdout.write(String(value));
-'
-)"
+if ! postgres_password="$(jq -r '.data.data.POSTGRES_PASSWORD // ""' "$openbao_secret_body_file")"; then
+  echo "Failed to parse OpenBao secret payload from ${OPENBAO_KV_MOUNT}/${OPENBAO_SECRET_PATH}" >&2
+  cat "$openbao_secret_body_file" >&2 || true
+  rm -f "$openbao_secret_body_file"
+  exit 1
+fi
+
+if [ -z "$postgres_password" ]; then
+  echo "OpenBao secret is missing required key: POSTGRES_PASSWORD" >&2
+  rm -f "$openbao_secret_body_file"
+  exit 1
+fi
 rm -f "$openbao_secret_body_file"
 
 export POSTGRES_PASSWORD="$postgres_password"
