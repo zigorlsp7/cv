@@ -271,29 +271,14 @@ fetch_ssm_path_to_env_file() {
   local output_file="$2"
   local response
   local count
-  local legacy_prefix=""
 
   response="$(aws ssm get-parameters-by-path --region "$AWS_REGION" --path "$prefix" --recursive --with-decryption --output json)"
   count="$(printf '%s' "$response" | jq '.Parameters | length')"
 
-  # Backward compatibility: older environments stored cv app params under /cv-web/*
-  # and may not have been migrated yet to /cv/*.
-  if [ "$count" -eq 0 ] && [[ "$prefix" == /cv/* ]] && [[ "$prefix" != /cv-web/* ]]; then
-    legacy_prefix="/cv-web/${prefix#/cv/}"
-    echo "[deploy] No SSM parameters found under $prefix, trying legacy prefix $legacy_prefix" >&2
-    response="$(aws ssm get-parameters-by-path --region "$AWS_REGION" --path "$legacy_prefix" --recursive --with-decryption --output json)"
-    count="$(printf '%s' "$response" | jq '.Parameters | length')"
-    if [ "$count" -gt 0 ]; then
-      prefix="$legacy_prefix"
-    fi
-  fi
-
   if [ "$count" -eq 0 ]; then
-    if [ -n "$legacy_prefix" ]; then
-      echo "No SSM parameters found under $prefix or $legacy_prefix (region=$AWS_REGION)" >&2
-    else
-      echo "No SSM parameters found under $prefix (region=$AWS_REGION)" >&2
-    fi
+    echo "No SSM parameters found under $prefix (region=$AWS_REGION)" >&2
+    echo "Seed this prefix before deploy, for example:" >&2
+    echo "  ./scripts/aws-ssm-sync-env.sh --file docker/.env.app.prod --prefix $prefix --region $AWS_REGION --secure-keys OPENBAO_TOKEN" >&2
     exit 1
   fi
 
