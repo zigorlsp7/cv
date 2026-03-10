@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/zigorlsp7/cv/compare/v0.1.14...v0.1.15) (2026-03-10)
+
+
+### Bug Fixes
+
+* cv release trigger 20260309 ([#94](https://github.com/zigorlsp7/cv/issues/94)) ([d9b5462](https://github.com/zigorlsp7/cv/commit/d9b5462bdf822ece59c9ab90c9c8c457229d430e))
+
 ## [0.1.14](https://github.com/zigorlsp7/cv/compare/v0.1.13...v0.1.14) (2026-03-10)
 
 
