@@ -74,7 +74,6 @@ services:
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://api_test:3000
       NEXT_PUBLIC_RUM_ENABLED: false
-      NEXT_PUBLIC_RUM_ENDPOINT: http://api_test:3000/v1/rum/events
       AUTH_SESSION_SECRET: local-auth-session-secret
       GOOGLE_CLIENT_ID: ""
       GOOGLE_CLIENT_SECRET: ""

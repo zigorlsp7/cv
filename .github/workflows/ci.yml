@@ -70,7 +70,6 @@ jobs:
           OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
           NEXT_PUBLIC_API_BASE_URL: http://api:3000
           NEXT_PUBLIC_RUM_ENABLED: "false"
-          NEXT_PUBLIC_RUM_ENDPOINT: http://localhost:3000/v1/rum/events
           NEXT_PUBLIC_RELEASE: ci
           GOOGLE_CLIENT_ID: ""
           GOOGLE_CLIENT_SECRET: ""

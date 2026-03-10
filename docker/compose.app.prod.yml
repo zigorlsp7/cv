@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL is required}
-      NEXT_PUBLIC_RUM_ENABLED: true
+      NEXT_PUBLIC_RUM_ENABLED: "true"
       NEXT_PUBLIC_RELEASE: ${NEXT_PUBLIC_RELEASE:?NEXT_PUBLIC_RELEASE is required}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID?GOOGLE_CLIENT_ID must be set}
       TOLGEE_API_URL: http://tolgee:8080
