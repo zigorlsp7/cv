@@ -289,11 +289,9 @@ fetch_ssm_path_to_env_file() {
   fi
 
   if [ "$count" -eq 0 ]; then
-    if [ -n "$legacy_prefix" ]; then
-      echo "No SSM parameters found under $prefix or $legacy_prefix (region=$AWS_REGION)" >&2
-    else
-      echo "No SSM parameters found under $prefix (region=$AWS_REGION)" >&2
-    fi
+    echo "No SSM parameters found under $prefix (region=$AWS_REGION)" >&2
+    echo "Seed this prefix before deploy, for example:" >&2
+    echo "  ./scripts/aws-ssm-sync-env.sh --file docker/.env.app.prod --prefix $prefix --region $AWS_REGION --secure-keys OPENBAO_TOKEN" >&2
     exit 1
   fi
 
