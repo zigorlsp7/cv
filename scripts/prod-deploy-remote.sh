@@ -261,45 +261,37 @@ fi
 
 cd "$RELEASE_DIR"
 
-APP_ENV_FILE="docker/.env.app.prod"
+APP_BASE_ENV_FILE="docker/.env.app.prod"
+APP_ENV_FILE="$(mktemp /tmp/cv-app-env.XXXXXX)"
+trap 'rm -f "$APP_ENV_FILE"' EXIT
 OPENBAO_LOCAL_ADDR="http://127.0.0.1:8200"
 OPENBAO_KV_MOUNT="kv"
 OPENBAO_SECRET_PATH="cv"
 
-fetch_ssm_path_to_env_file() {
-  local prefix="$1"
-  local output_file="$2"
-  local response
-  local count
-  local legacy_prefix=""
+if [ ! -f "$APP_BASE_ENV_FILE" ]; then
+  echo "Missing base app env file in release bundle: $APP_BASE_ENV_FILE" >&2
+  exit 1
+fi
 
-  response="$(aws ssm get-parameters-by-path --region "$AWS_REGION" --path "$prefix" --recursive --with-decryption --output json)"
-  count="$(printf '%s' "$response" | jq '.Parameters | length')"
+cp "$APP_BASE_ENV_FILE" "$APP_ENV_FILE"
+chmod 600 "$APP_ENV_FILE"
 
-  # Backward compatibility: older environments stored cv app params under /cv-web/*
-  # and may not have been migrated yet to /cv/*.
-  if [ "$count" -eq 0 ] && [[ "$prefix" == /cv/* ]] && [[ "$prefix" != /cv-web/* ]]; then
-    legacy_prefix="/cv-web/${prefix#/cv/}"
-    echo "[deploy] No SSM parameters found under $prefix, trying legacy prefix $legacy_prefix" >&2
-    response="$(aws ssm get-parameters-by-path --region "$AWS_REGION" --path "$legacy_prefix" --recursive --with-decryption --output json)"
-    count="$(printf '%s' "$response" | jq '.Parameters | length')"
-    if [ "$count" -gt 0 ]; then
-      prefix="$legacy_prefix"
-    fi
-  fi
+read_env_var() {
+  local file="$1"
+  local key="$2"
+  grep -E "^${key}=" "$file" | tail -n1 | cut -d'=' -f2- || true
+}
 
-  if [ "$count" -eq 0 ]; then
-    echo "No SSM parameters found under $prefix (region=$AWS_REGION)" >&2
-    echo "Seed this prefix before deploy, for example:" >&2
-    echo "  ./scripts/aws-ssm-sync-env.sh --file docker/.env.app.prod --prefix $prefix --region $AWS_REGION --secure-keys OPENBAO_TOKEN" >&2
+require_env_var_in_file() {
+  local file="$1"
+  local key="$2"
+  local value
+
+  value="$(read_env_var "$file" "$key")"
+  if [ -z "$value" ]; then
+    echo "Missing required non-secret value '$key' in $file" >&2
     exit 1
   fi
-
-  printf '%s' "$response" \
-    | jq -r '.Parameters | sort_by(.Name)[] | "\(.Name | split("/") | last)=\(.Value)"' > "$output_file"
-
-  echo "[deploy] Loaded $count SSM parameters from $prefix"
-  chmod 600 "$output_file"
 }
 
 upsert_env_var() {
@@ -320,7 +312,47 @@ upsert_env_var() {
   mv "$tmp" "$file"
 }
 
-fetch_ssm_path_to_env_file "$APP_SSM_PREFIX" "$APP_ENV_FILE"
+fetch_ssm_secret_value() {
+  local parameter_name="$1"
+  local value
+  local err_file
+  local rc
+
+  err_file="$(mktemp)"
+
+  set +e
+  value="$(aws ssm get-parameter --region "$AWS_REGION" --name "$parameter_name" --with-decryption --query 'Parameter.Value' --output text 2>"$err_file")"
+  rc=$?
+  set -e
+
+  if [ "$rc" -ne 0 ] || [ -z "$value" ] || [ "$value" = "None" ]; then
+    echo "Missing required SSM secret: $parameter_name (region=$AWS_REGION)" >&2
+    if [ -s "$err_file" ]; then
+      cat "$err_file" >&2
+    fi
+    rm -f "$err_file"
+    exit 1
+  fi
+
+  rm -f "$err_file"
+  printf '%s' "$value"
+}
+
+required_non_secret_keys=(
+  TRUST_PROXY
+  SWAGGER_ENABLED
+  CORS_ORIGINS
+  GOOGLE_CLIENT_ID
+  GOOGLE_OAUTH_REDIRECT_URI
+  NEXT_PUBLIC_API_BASE_URL
+)
+
+for key in "${required_non_secret_keys[@]}"; do
+  require_env_var_in_file "$APP_ENV_FILE" "$key"
+done
+
+openbao_token="$(fetch_ssm_secret_value "${APP_SSM_PREFIX%/}/OPENBAO_TOKEN")"
+upsert_env_var "$APP_ENV_FILE" "OPENBAO_TOKEN" "$openbao_token"
 upsert_env_var "$APP_ENV_FILE" "API_IMAGE" "$API_IMAGE"
 upsert_env_var "$APP_ENV_FILE" "WEB_IMAGE" "$WEB_IMAGE"
 upsert_env_var "$APP_ENV_FILE" "NEXT_PUBLIC_RELEASE" "$RELEASE_TAG"
@@ -347,12 +379,6 @@ done
 
 if [ "$openbao_ready" != "true" ]; then
   echo "OpenBao did not become ready (last_health_code=$openbao_code). Ensure platform-ops is running on this host." >&2
-  exit 1
-fi
-
-openbao_token="$(grep -E '^OPENBAO_TOKEN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
-if [ -z "$openbao_token" ]; then
-  echo "OPENBAO_TOKEN must be present in $APP_ENV_FILE" >&2
   exit 1
 fi
 
@@ -389,19 +415,11 @@ login_ecr_for_image "$WEB_IMAGE"
 echo "[deploy] Starting app stack"
 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
 
-api_domain="$(grep -E '^API_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
-web_domain="$(grep -E '^WEB_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+echo "[deploy] Health checking API via app network"
+retry 30 2 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml exec -T web sh -lc "wget -qO- http://cv-api:3000/v1/health/ready >/dev/null"
 
-if [ -z "$api_domain" ] || [ -z "$web_domain" ]; then
-  echo "API_DOMAIN and WEB_DOMAIN must be present in $APP_ENV_FILE" >&2
-  exit 1
-fi
-
-echo "[deploy] Health checking API via Caddy"
-retry 30 2 curl -fsS -H "Host: $api_domain" http://127.0.0.1/v1/health/ready >/dev/null
-
-echo "[deploy] Health checking web via Caddy"
-retry 30 2 curl -fsS -H "Host: $web_domain" http://127.0.0.1/ >/dev/null
+echo "[deploy] Health checking web container"
+retry 30 2 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml exec -T web sh -lc "wget -qO- http://localhost:3001/ >/dev/null"
 
 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml ps
 

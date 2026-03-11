@@ -68,8 +68,6 @@ jobs:
           AWS_DEPLOY_BUCKET: ${{ vars.AWS_DEPLOY_BUCKET }}
           AWS_DEPLOY_INSTANCE_ID: ${{ vars.AWS_DEPLOY_INSTANCE_ID }}
           AWS_SSM_APP_PREFIX: ${{ vars.AWS_SSM_APP_PREFIX }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_RUM_ENABLED: ${{ vars.NEXT_PUBLIC_RUM_ENABLED }}
         run: |
           required=(
             AWS_REGION
@@ -78,8 +76,6 @@ jobs:
             AWS_DEPLOY_BUCKET
             AWS_DEPLOY_INSTANCE_ID
             AWS_SSM_APP_PREFIX
-            NEXT_PUBLIC_API_BASE_URL
-            NEXT_PUBLIC_RUM_ENABLED
           )
 
           for name in "${required[@]}"; do
@@ -94,14 +90,38 @@ jobs:
             fi
           done
 
-          case "$(printf '%s' "$NEXT_PUBLIC_RUM_ENABLED" | tr '[:upper:]' '[:lower:]')" in
-            true|false|1|0|yes|no)
-              ;;
-            *)
-              echo "NEXT_PUBLIC_RUM_ENABLED must be one of: true,false,1,0,yes,no" >&2
+      - name: Load web build variables from docker/.env.app.prod
+        run: |
+          set -euo pipefail
+
+          APP_ENV_FILE="docker/.env.app.prod"
+          if [ ! -f "$APP_ENV_FILE" ]; then
+            echo "Missing app env template in repository: $APP_ENV_FILE" >&2
+            exit 1
+          fi
+
+          read_env_var() {
+            local key="$1"
+            grep -E "^${key}=" "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true
+          }
+
+          require_non_empty_var() {
+            local key="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "Missing required key in $APP_ENV_FILE: $key" >&2
               exit 1
-              ;;
-          esac
+            fi
+          }
+
+          NEXT_PUBLIC_API_BASE_URL="$(read_env_var NEXT_PUBLIC_API_BASE_URL)"
+
+          require_non_empty_var "NEXT_PUBLIC_API_BASE_URL" "$NEXT_PUBLIC_API_BASE_URL"
+
+          {
+            echo "NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL"
+            echo "NEXT_PUBLIC_RUM_ENABLED=true"
+          } >> "$GITHUB_ENV"
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -116,9 +136,8 @@ jobs:
           API_REPOSITORY: ${{ vars.AWS_ECR_API_REPOSITORY_URI }}
           WEB_REPOSITORY: ${{ vars.AWS_ECR_WEB_REPOSITORY_URI }}
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_RUM_ENABLED: ${{ vars.NEXT_PUBLIC_RUM_ENABLED }}
-          NEXT_PUBLIC_RUM_ENDPOINT: ${{ vars.NEXT_PUBLIC_RUM_ENDPOINT }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ env.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_RUM_ENABLED: ${{ env.NEXT_PUBLIC_RUM_ENABLED }}
         run: |
           api_image="${API_REPOSITORY}:${IMAGE_TAG}"
           web_image="${WEB_REPOSITORY}:${IMAGE_TAG}"
@@ -138,7 +157,6 @@ jobs:
             docker build \
               --build-arg NEXT_PUBLIC_API_BASE_URL="$NEXT_PUBLIC_API_BASE_URL" \
               --build-arg NEXT_PUBLIC_RUM_ENABLED="$NEXT_PUBLIC_RUM_ENABLED" \
-              --build-arg NEXT_PUBLIC_RUM_ENDPOINT="$NEXT_PUBLIC_RUM_ENDPOINT" \
               --build-arg NEXT_PUBLIC_RELEASE="$IMAGE_TAG" \
               -f apps/ui/Dockerfile --target prod -t "$web_image" .
             docker push "$web_image"
