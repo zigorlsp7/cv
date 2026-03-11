@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/zigorlsp7/cv/compare/v0.1.17...v0.1.18) (2026-03-11)
+
+
+### Features
+
+* **ci:** optimize PR workflow runtime ([#100](https://github.com/zigorlsp7/cv/issues/100)) ([46bf851](https://github.com/zigorlsp7/cv/commit/46bf851f3d9aff064c9ffef3f585d5d3eed71ca0))
+
 ## [0.1.17](https://github.com/zigorlsp7/cv/compare/v0.1.16...v0.1.17) (2026-03-11)
 
 
