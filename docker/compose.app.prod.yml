@@ -98,7 +98,10 @@ services:
         "-lc",
         "until wget -qO- http://cv-api:3000/v1/health/ready >/dev/null 2>&1; do sleep 2; done; exec node /app/scripts/openbao-run.mjs -- node apps/ui/server.js",
       ]
-    networks: [cv_shared]
+    networks:
+      cv_shared:
+        aliases:
+          - cv-web
 
   alloy:
     image: grafana/alloy:v1.12.0
@@ -115,24 +118,6 @@ services:
       - api
     networks: [cv_shared]
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      WEB_DOMAIN: ${WEB_DOMAIN:?WEB_DOMAIN is required}
-      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN is required}
-    volumes:
-      - ../docker/caddy/Caddyfile.app.prod:/etc/caddy/Caddyfile:ro
-      - app-prod-caddy-data:/data
-      - app-prod-caddy-config:/config
-    depends_on:
-      - web
-      - api
-    networks: [cv_shared]
-
 networks:
   cv_shared:
     name: platform_ops_shared
@@ -141,5 +126,3 @@ networks:
 volumes:
   app-prod-pgdata:
   app-prod-alloy-data:
-  app-prod-caddy-data:
-  app-prod-caddy-config:

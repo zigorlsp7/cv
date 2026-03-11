@@ -345,8 +345,6 @@ required_non_secret_keys=(
   GOOGLE_CLIENT_ID
   GOOGLE_OAUTH_REDIRECT_URI
   NEXT_PUBLIC_API_BASE_URL
-  WEB_DOMAIN
-  API_DOMAIN
 )
 
 for key in "${required_non_secret_keys[@]}"; do
@@ -417,19 +415,11 @@ login_ecr_for_image "$WEB_IMAGE"
 echo "[deploy] Starting app stack"
 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml up -d
 
-api_domain="$(grep -E '^API_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
-web_domain="$(grep -E '^WEB_DOMAIN=' "$APP_ENV_FILE" | tail -n1 | cut -d'=' -f2- || true)"
+echo "[deploy] Health checking API via app network"
+retry 30 2 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml exec -T web sh -lc "wget -qO- http://cv-api:3000/v1/health/ready >/dev/null"
 
-if [ -z "$api_domain" ] || [ -z "$web_domain" ]; then
-  echo "API_DOMAIN and WEB_DOMAIN must be present in $APP_ENV_FILE" >&2
-  exit 1
-fi
-
-echo "[deploy] Health checking API via Caddy"
-retry 30 2 curl -fsS -H "Host: $api_domain" http://127.0.0.1/v1/health/ready >/dev/null
-
-echo "[deploy] Health checking web via Caddy"
-retry 30 2 curl -fsS -H "Host: $web_domain" http://127.0.0.1/ >/dev/null
+echo "[deploy] Health checking web container"
+retry 30 2 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml exec -T web sh -lc "wget -qO- http://localhost:3001/ >/dev/null"
 
 run_compose --env-file "$APP_ENV_FILE" -f docker/compose.app.prod.yml ps
 

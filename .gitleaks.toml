@@ -8,6 +8,7 @@ description = "Allow sample/local alert env templates"
 paths = [
   '''(^|/)docker/alertmanager\.email\.tpl\.yml$''',
   '''(^|/)docker/alertmanager\.prod\.yml$''',
+  '''(^|/)docker/\.env\.app\.local$''',
 ]
 
 [[allowlists]]
