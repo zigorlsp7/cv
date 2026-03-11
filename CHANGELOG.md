@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.17](https://github.com/zigorlsp7/cv/compare/v0.1.16...v0.1.17) (2026-03-11)
+
+
+### Features
+
+* unified env non secrets 20260310 ([#98](https://github.com/zigorlsp7/cv/issues/98)) ([b2fc5a8](https://github.com/zigorlsp7/cv/commit/b2fc5a8da464a2a028f529e6a54ee644eac4b9dc))
+
 ## [0.1.16](https://github.com/zigorlsp7/cv/compare/v0.1.15...v0.1.16) (2026-03-10)
 
 
