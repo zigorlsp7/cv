@@ -5,9 +5,10 @@ node_modules/
 .env
 .env.*
 !apps/api/.env.test
-!docker/.env.app.local
+!docker/.env.app.local.example
 !docker/.env.app.prod
 docker/.env.local
+docker/.env.app.local
 
 # builds
 dist/

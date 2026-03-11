@@ -4,10 +4,8 @@ title = "cv gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Allow local env files and known non-production placeholders"
+description = "Allow known non-production placeholders"
 paths = [
-  '''(^|/)docker/\.env\..*\.local(\..*)?$''',
-  '''(^|/)\.env\..*\.local(\..*)?$''',
   '''(^|/)docker/alertmanager\.email\.tpl\.yml$''',
   '''(^|/)docker/alertmanager\.prod\.yml$''',
 ]

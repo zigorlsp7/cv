@@ -14,6 +14,7 @@ import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module
 import { RumModule } from './modules/rum/rum.module';
 import { ArchitectureModule } from './modules/architecture/architecture.module';
 import { CvModule } from './modules/cv/cv.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { getOtelIds } from './observability/otel-log-context';
 
 @Module({
@@ -25,6 +26,7 @@ import { getOtelIds } from './observability/otel-log-context';
     RumModule,
     ArchitectureModule,
     CvModule,
+    ContactModule,
     LoggerModule.forRoot({
       pinoHttp: {
         level: config.logLevel,

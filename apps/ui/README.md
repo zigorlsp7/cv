@@ -15,11 +15,6 @@ Frontend workspace for the CV platform template.
 
 - `NEXT_PUBLIC_API_BASE_URL`
 - `NEXT_PUBLIC_RELEASE`
-- `AUTH_SESSION_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OAUTH_REDIRECT_URI`
-- `ADMIN_GOOGLE_EMAILS`
 
 Runtime Tolgee variables (server-side):
 
@@ -54,14 +49,4 @@ Expected contract:
 Typical keys in `kv/cv`:
 
 - `TOLGEE_API_KEY`
-- `AUTH_SESSION_SECRET`
-- `GOOGLE_CLIENT_SECRET`
-- `ADMIN_GOOGLE_EMAILS`
 - `POSTGRES_PASSWORD` (used by app stack startup/deploy scripts)
-
-## Google SSO + Roles
-
-- Header user icon triggers Google OAuth sign-in.
-- Session cookie is signed with `AUTH_SESSION_SECRET`.
-- `ADMIN_GOOGLE_EMAILS` controls admin role assignment.
-- Only admins can perform protected write actions in UI.

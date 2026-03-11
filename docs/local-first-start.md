@@ -1,140 +1,239 @@
 # Local First Start (cv)
 
-Use this runbook for first local startup of `cv`, or after resetting local data/OpenBao.
+Use this runbook when you are creating the `cv` local environment from scratch.
+Complete `platform-ops/docs/local-first-start.md` first. `cv` depends on OpenBao, Tolgee, the shared Docker network, and the shared observability services started there.
 
-## 1. Prerequisites
+## 1. What You Are Building
 
-- `platform-ops` local stack is running.
-- OpenBao is initialized and unsealed.
-- `kv` secrets engine exists in OpenBao.
+When this runbook is complete, you will have:
 
-If OpenBao is not initialized yet, follow:
+- the `cv` API running on `http://localhost:3000`
+- the `cv` web app running on `http://localhost:3001`
+- a local Postgres database for `cv`
+- runtime translations loaded from Tolgee
+- optional email/contact delivery through the separate `notifications` local stack
 
-- `platform-ops/docs/local-first-start.md`
+## 2. Prerequisites
 
-## 2. Create `kv/cv` Secret in OpenBao (UI)
+Run every command in this document from the `cv` repo root.
 
-Open:
+Required:
+
+- `platform-ops` local stack is already running
+- OpenBao in `platform-ops` is initialized and unsealed
+- `kv` v2 is enabled in OpenBao
+- Docker
+- `npm`
+- `jq`
+
+Optional but recommended:
+
+- the `notifications` local stack, if you want the contact form to deliver messages locally
+
+## 3. Create The Tolgee Project And API Key
+
+`cv` requires a Tolgee project and an API key before the web container can start.
+
+Open Tolgee:
+
+- `http://localhost:8090`
+
+Log in with the bootstrap credentials you configured in `platform-ops/docker/.env.ops.local`.
+
+Then:
+
+1. create a project for `cv` if it does not already exist
+2. note the numeric project id
+   - you can usually see it in the Tolgee project URL or project settings
+3. create an API key for that project that can be used by the server-side runtime to read or export translations
+
+You will need:
+
+- the project id for `TOLGEE_PROJECT_ID` in `docker/.env.app.local`
+- the API key for `TOLGEE_API_KEY` in OpenBao
+
+Important:
+
+- the tracked local env file defaults `TOLGEE_PROJECT_ID=2`
+- if your fresh Tolgee instance gives `cv` a different id, update `docker/.env.app.local` before starting the stack
+
+## 4. Create The OpenBao Secret `kv/cv`
+
+Open OpenBao:
 
 - `http://localhost:8200/ui`
 
-In OpenBao UI:
+Create secret path `kv/cv` with these keys:
 
-1. Go to secrets engines and open `kv`.
-2. Create secret at path `cv`.
-3. Add these keys:
-- `AUTH_SESSION_SECRET`
-  - generate with:
-```bash
-openssl rand -hex 32
-```
 - `TOLGEE_API_KEY`
-- `GOOGLE_CLIENT_SECRET`
-- `ADMIN_GOOGLE_EMAILS`
+  - the Tolgee API key from the previous step
 - `POSTGRES_PASSWORD`
+  - password used by the local `cv` Postgres container
+  - choose any strong local-only value
 
-`ADMIN_GOOGLE_EMAILS` example:
+Why these are needed:
 
-- `you@example.com,other@example.com`
+- the web app reads `TOLGEE_API_KEY` from OpenBao at runtime
+- the startup script reads `POSTGRES_PASSWORD` from OpenBao before starting Docker Compose
 
-## 3. Create a Read Policy for CV Token (UI)
+## 5. Create A Read-Only Policy For `cv`
 
-In OpenBao UI:
+Create an OpenBao ACL policy named `cv-local-read`:
 
-1. Open top-level `Policies` from the left navigation.
-2. Click create ACL policy.
-3. Name: `cv-local-read`
-4. Policy content:
-
-```hcl
+```bash
+docker compose --env-file ../platform-ops/docker/.env.ops.local -f ../platform-ops/docker/compose.ops.local.yml exec -T openbao bao policy write cv-local-read - <<'EOF'
 path "kv/data/cv" { capabilities = ["read"] }
 path "kv/metadata/cv" { capabilities = ["read"] }
+EOF
 ```
 
-## 4. Create CV Read Token (CLI required in this UI version)
+This policy allows the app to read only its own secret path and nothing else.
 
-Your OpenBao UI shows this message for `token` auth method:
+## 6. Create The `cv` OpenBao Token
 
-- `The OpenBao UI only supports configuration for this authentication method. For management, the API or CLI should be used.`
+Use the OpenBao root token you saved during the `platform-ops` bootstrap.
 
-So create the token with CLI:
+Create a token bound to the policy above:
 
 ```bash
 ROOT_TOKEN='paste_root_token_here'
-docker compose --env-file docker/.env.ops.local -f docker/compose.ops.local.yml exec -T \
+
+docker compose --env-file ../platform-ops/docker/.env.ops.local -f ../platform-ops/docker/compose.ops.local.yml exec -T \
   -e BAO_ADDR=http://127.0.0.1:8200 \
   -e BAO_TOKEN="$ROOT_TOKEN" \
   openbao bao token create -policy=cv-local-read -format=json \
   | jq -r '.auth.client_token'
 ```
 
-Use the `ROOT_TOKEN` you got when initializing OpenBao.
-Do not include angle brackets (`<` `>`) around the token value.
+Copy the printed token value.
 
-Do not use the root token in `cv` env except temporary debugging.
+Important:
 
-## 5. Prepare CV Local Env
+- do not put the root token in the `cv` env file
+- use only the narrow read token created for `cv`
 
-Edit `docker/.env.app.local` and confirm at least:
+## 7. Prepare The Local Env File
 
-- `OPENBAO_TOKEN=<client token from step 4>`
-- `SWAGGER_ENABLED=true` (optional, for local docs)
-- local domains/URLs are correct for your setup
+Create the real local env file from the tracked example:
 
-## 6. Start CV Local Stack
+```bash
+cp docker/.env.app.local.example docker/.env.app.local
+```
 
-From `cv` repo root:
+Edit `docker/.env.app.local`.
+
+Set or review these values:
+
+- `OPENBAO_TOKEN`
+  - set it to the `cv-local-read` token from the previous step
+- `TOLGEE_PROJECT_ID`
+  - set it to the real Tolgee project id for `cv`
+  - change it if your project id is not the default value
+- `SWAGGER_ENABLED`
+  - set to `true` if you want Swagger locally
+- `CORS_ORIGINS`
+  - keep `http://localhost:3001` unless your local web origin is different
+- `NOTIFICATIONS_KAFKA_BROKERS`
+  - keep the default if you use the local `notifications` stack on the shared network
+
+Leave these placeholders as they are:
+
+- `POSTGRES_PASSWORD=SET_FROM_OPEN_BAO`
+- `API_IMAGE=REQUIRED_SET_BY_DEPLOY`
+- `WEB_IMAGE=REQUIRED_SET_BY_DEPLOY`
+
+They are not meant to be edited manually for local startup.
+
+## 8. Start The Local Stack
+
+Start the app:
 
 ```bash
 npm run local:up
 ```
 
-The script will:
+What the script does:
 
-- validate OpenBao readiness
-- validate token access to `kv/cv`
-- validate required keys
-- start postgres, ensure DB exists
-- start/rebuild app services
+- validates that OpenBao is reachable
+- validates that your token can read `kv/cv`
+- validates the required OpenBao keys
+- exports `POSTGRES_PASSWORD` from OpenBao
+- starts or rebuilds the local Docker Compose stack
 
-## 7. Validate
+## 9. Validate The Local App
+
+Check the API:
 
 ```bash
 curl -fsS http://localhost:3000/v1/health/ready
-curl -fsS http://localhost:3001
 ```
 
-## 8. Troubleshooting
+Open the web app:
 
-`403 permission denied` on `kv/cv`:
+- `http://localhost:3001`
 
-- token policy is missing/wrong
-- token does not include `cv-local-read`
-- `OPENBAO_TOKEN` in `docker/.env.app.local` is outdated
+Optional checks:
 
-`OpenBao is uninitialized` or `sealed`:
+- Swagger, if enabled: `http://localhost:3000/docs`
+- contact form delivery, if `notifications` is also running
 
-- fix OpenBao state in `platform-ops` first
+## 10. Daily Commands
 
-`missing required keys`:
-
-- one or more required keys under `kv/cv` are empty/missing
-
-## 9. CLI Fallback (Optional)
-
-If you prefer CLI for policy/token creation:
+Start or restart the local app:
 
 ```bash
-docker compose --env-file docker/.env.ops.local -f docker/compose.ops.local.yml exec -T openbao bao policy write cv-local-read - <<'EOF'
-path "kv/data/cv" { capabilities = ["read"] }
-path "kv/metadata/cv" { capabilities = ["read"] }
-EOF
-
-docker compose --env-file docker/.env.ops.local -f docker/compose.ops.local.yml exec -T openbao bao token create -policy=cv-local-read
+npm run local:up
 ```
 
-To print only the token value:
+Stop the stack but keep volumes:
 
 ```bash
-docker compose --env-file docker/.env.ops.local -f docker/compose.ops.local.yml exec -T openbao sh -lc 'bao token create -policy=cv-local-read -format=json | jq -r .auth.client_token'
+npm run local:down
 ```
+
+Stop the stack and delete local volumes:
+
+```bash
+npm run local:reset
+```
+
+## 11. Troubleshooting
+
+`403 permission denied` when reading `kv/cv`:
+
+- the token does not have the `cv-local-read` policy
+- the token in `docker/.env.app.local` is old or incorrect
+
+`missing required keys` during startup:
+
+- one or more keys are missing or empty in `kv/cv`
+- confirm `TOLGEE_API_KEY` and `POSTGRES_PASSWORD` exist
+
+The web app fails to load translations:
+
+- `TOLGEE_PROJECT_ID` does not match the real Tolgee project id
+- `TOLGEE_API_KEY` is wrong or no longer valid
+- Tolgee in `platform-ops` is not reachable
+
+The contact form fails locally:
+
+- the `notifications` local stack is not running
+- `NOTIFICATIONS_KAFKA_BROKERS` points at the wrong broker
+
+You need container logs:
+
+```bash
+docker compose --env-file docker/.env.app.local -f docker/compose.app.local.yml logs --no-color <service>
+```
+
+Common services:
+
+- `api`
+- `web`
+- `postgres`
+
+## 12. Next Step
+
+If you also want local email delivery, continue with:
+
+- `../notifications/docs/local-first-start.md`

@@ -43,6 +43,11 @@ export type ApiOperation = {
   responseCodes: ['200'];
 } | {
   method: 'POST';
+  path: '/v1/contact';
+  operationId: 'ContactController_sendMessage_v1';
+  responseCodes: ['201'];
+} | {
+  method: 'POST';
   path: '/v1/rum/events';
   operationId: 'RumController_ingest_v1';
   responseCodes: ['201'];
@@ -50,10 +55,10 @@ export type ApiOperation = {
   method: 'PUT';
   path: '/v1/cv';
   operationId: 'CvController_upsertProfile_v1';
-  responseCodes: ['200', '401', '403'];
+  responseCodes: ['200'];
 };
 
-export const API_OPERATION_COUNT = 10 as const;
+export const API_OPERATION_COUNT = 11 as const;
 
 export const API_OPERATIONS = [
   {
@@ -122,6 +127,14 @@ export const API_OPERATIONS = [
   },
   {
     "method": "POST",
+    "path": "/v1/contact",
+    "operationId": "ContactController_sendMessage_v1",
+    "responseCodes": [
+      "201"
+    ]
+  },
+  {
+    "method": "POST",
     "path": "/v1/rum/events",
     "operationId": "RumController_ingest_v1",
     "responseCodes": [
@@ -133,9 +146,7 @@ export const API_OPERATIONS = [
     "path": "/v1/cv",
     "operationId": "CvController_upsertProfile_v1",
     "responseCodes": [
-      "200",
-      "401",
-      "403"
+      "200"
     ]
   }
 ] as const;

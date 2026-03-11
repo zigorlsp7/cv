@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/client';
 import { getUiTheme } from '@/lib/architecture-variants';
 import type { CvProfile } from '@/lib/cv-content';
+import { ContactButton } from '@/components/contact-button';
 
 type Envelope<T> = {
   ok: boolean;
@@ -71,15 +72,12 @@ function parseProfile(payload: Envelope<CvProfile> | CvProfile): CvProfile {
 
 export function CvProfileView({
   initialProfile,
-  initialCanEdit,
 }: {
   initialProfile: CvProfile;
-  initialCanEdit: boolean;
 }) {
   const theme = getUiTheme();
   const { t } = useI18n();
   const [profile, setProfile] = useState<CvProfile>(() => cloneProfile(initialProfile));
-  const [canEdit, setCanEdit] = useState(initialCanEdit);
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [personalDraft, setPersonalDraft] = useState<PersonalDraft | null>(null);
   const [sectionDraft, setSectionDraft] = useState<SectionDraft | null>(null);
@@ -105,7 +103,6 @@ export function CvProfileView({
   );
 
   const openPersonalModal = () => {
-    if (!canEdit) return;
     setError(null);
     setSectionDraft(null);
     setPersonalDraft({
@@ -118,7 +115,6 @@ export function CvProfileView({
   };
 
   const openSectionModal = (index: number) => {
-    if (!canEdit) return;
     const section = profile.sections[index];
     if (!section) return;
     setError(null);
@@ -180,15 +176,6 @@ export function CvProfileView({
     }
   }, [editTarget]);
 
-  useEffect(() => {
-    setCanEdit(initialCanEdit);
-    if (!initialCanEdit) {
-      setEditTarget(null);
-      setPersonalDraft(null);
-      setSectionDraft(null);
-    }
-  }, [initialCanEdit]);
-
   const persistProfile = async (nextProfile: CvProfile) => {
     setSaving(true);
     setError(null);
@@ -198,12 +185,6 @@ export function CvProfileView({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(toPayload(nextProfile)),
       });
-
-      if (response.status === 401 || response.status === 403) {
-        setCanEdit(false);
-        closeModal();
-        throw new Error('Admin session expired. Sign in again.');
-      }
 
       if (!response.ok) {
         throw new Error(`Save failed: ${response.status}`);
@@ -260,7 +241,8 @@ export function CvProfileView({
               <p className={`mt-1 text-sm font-semibold ${theme.muted}`}>{profile.role}</p>
               <p className={`mt-3 text-sm leading-relaxed ${theme.text}`}>{profile.tagline}</p>
             </div>
-            {canEdit ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <ContactButton />
               <button
                 type="button"
                 onClick={openPersonalModal}
@@ -270,7 +252,7 @@ export function CvProfileView({
               >
                 {t('cv.edit')}
               </button>
-            ) : null}
+            </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {profile.chips.map((chip) => (
@@ -288,17 +270,15 @@ export function CvProfileView({
           <article key={section.id} className={`rounded-2xl p-6 ${theme.card}`}>
             <div className="flex items-start justify-between gap-3">
               <h2 className={`text-lg font-semibold ${theme.title}`}>{section.title}</h2>
-              {canEdit ? (
-                <button
-                  type="button"
-                  onClick={() => openSectionModal(index)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${theme.chipPrimary}`}
-                  aria-label={t('cv.editSectionAria', { section: section.title })}
-                  aria-haspopup="dialog"
-                >
-                  {t('cv.edit')}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => openSectionModal(index)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${theme.chipPrimary}`}
+                aria-label={t('cv.editSectionAria', { section: section.title })}
+                aria-haspopup="dialog"
+              >
+                {t('cv.edit')}
+              </button>
             </div>
             <p className={`mt-2 text-sm leading-relaxed ${theme.text}`}>{section.summary}</p>
             <ul className="mt-4 space-y-2">

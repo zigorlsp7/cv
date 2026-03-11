@@ -46,9 +46,10 @@ services:
       REQUEST_BODY_LIMIT: 1mb
       OTEL_SERVICE_NAME: cv-api-test
       OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
-      AUTH_SESSION_SECRET: local-auth-session-secret
       SWAGGER_ENABLED: "true"
       FEATURE_FLAGS: rum_ingest=true
+      NOTIFICATIONS_KAFKA_BROKERS: notifications-redpanda:9092
+      NOTIFICATIONS_EMAIL_TOPIC: notification.email.requested.v1
     ports:
       - "3003:3000"
     depends_on:
@@ -74,11 +75,6 @@ services:
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://api_test:3000
       NEXT_PUBLIC_RUM_ENABLED: false
-      AUTH_SESSION_SECRET: local-auth-session-secret
-      GOOGLE_CLIENT_ID: ""
-      GOOGLE_CLIENT_SECRET: ""
-      GOOGLE_OAUTH_REDIRECT_URI: ""
-      ADMIN_GOOGLE_EMAILS: ""
     ports:
       - "3101:3001"
     depends_on:
