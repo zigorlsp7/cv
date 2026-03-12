@@ -33,9 +33,8 @@ describe('CvController', () => {
       upsertProfile: jest.fn().mockResolvedValue(profile),
     } as unknown as CvService;
     const controller = new CvController(service);
-    const req = { user: { role: 'admin' } } as any;
 
-    await expect(controller.upsertProfile(payload, req)).resolves.toEqual(profile);
+    await expect(controller.upsertProfile(payload)).resolves.toEqual(profile);
     expect(service.upsertProfile).toHaveBeenCalledWith(payload);
   });
 });

@@ -8,40 +8,19 @@ function getApiBase(): string {
   return base;
 }
 
-function resolveCvApiUrl(): string {
+function resolveContactApiUrl(): string {
   const normalized = getApiBase().replace(/\/+$/, '');
   return normalized.endsWith('/v1')
-    ? `${normalized}/cv`
-    : `${normalized}/v1/cv`;
+    ? `${normalized}/contact`
+    : `${normalized}/v1/contact`;
 }
 
-export async function GET() {
-  try {
-    const response = await fetch(resolveCvApiUrl(), { cache: 'no-store' });
-    const text = await response.text();
-    const contentType = response.headers.get('content-type');
-
-    return new NextResponse(text, {
-      status: response.status,
-      headers: contentType ? { 'content-type': contentType } : undefined,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: 'Failed to proxy CV profile request',
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
-  }
-}
-
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   const body = await request.text();
+
   try {
-    const response = await fetch(resolveCvApiUrl(), {
-      method: 'PUT',
+    const response = await fetch(resolveContactApiUrl(), {
+      method: 'POST',
       headers: {
         'content-type': 'application/json',
       },
@@ -59,7 +38,7 @@ export async function PUT(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: 'Failed to proxy CV profile update request',
+        error: 'Failed to proxy contact request',
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },

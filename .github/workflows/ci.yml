@@ -66,15 +66,13 @@ jobs:
           REQUEST_BODY_LIMIT: 1mb
           SWAGGER_ENABLED: "false"
           FEATURE_FLAGS: rum_ingest=true
+          NOTIFICATIONS_KAFKA_BROKERS: notifications-redpanda:9092
+          NOTIFICATIONS_EMAIL_TOPIC: notification.email.requested.v1
           OTEL_SERVICE_NAME: cv-api
           OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
           NEXT_PUBLIC_API_BASE_URL: http://api:3000
           NEXT_PUBLIC_RUM_ENABLED: "false"
           NEXT_PUBLIC_RELEASE: ci
-          GOOGLE_CLIENT_ID: ""
-          GOOGLE_CLIENT_SECRET: ""
-          GOOGLE_OAUTH_REDIRECT_URI: ""
-          ADMIN_GOOGLE_EMAILS: ""
           I18N_SOURCE: local
           TOLGEE_API_URL: http://tolgee:8080
           TOLGEE_PROJECT_ID: "2"
@@ -82,8 +80,8 @@ jobs:
           OPENBAO_TOKEN: ci-dummy-token
           OPENBAO_KV_MOUNT: kv
           OPENBAO_SECRET_PATH: cv
-          OPENBAO_REQUIRED_KEYS_API: ADMIN_API_TOKEN
-          OPENBAO_REQUIRED_KEYS_WEB: ADMIN_API_TOKEN,AUTH_SESSION_SECRET,TOLGEE_API_KEY
+          OPENBAO_REQUIRED_KEYS_API: ""
+          OPENBAO_REQUIRED_KEYS_WEB: TOLGEE_API_KEY
         run: |
           docker compose -f docker/compose.app.local.yml config > /dev/null
           docker compose -f docker/compose.app.prod.yml config > /dev/null

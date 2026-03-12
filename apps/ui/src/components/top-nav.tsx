@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getUiTheme } from "@/lib/architecture-variants";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { UserAuthMenu } from "@/components/user-auth-menu";
 import { useI18n } from "@/i18n/client";
 
 const NAV_ITEMS = [
@@ -34,7 +33,6 @@ export function TopNav() {
 
         <div className="order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
           <LanguageSwitcher />
-          <UserAuthMenu />
         </div>
 
         <nav aria-label="Primary" className="order-3 w-full md:order-2 md:w-auto">
