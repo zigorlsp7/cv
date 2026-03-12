@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/zigorlsp7/cv/compare/v0.1.18...v0.1.19) (2026-03-12)
+
+
+### Features
+
+* cv public edit contact 20260311 ([#102](https://github.com/zigorlsp7/cv/issues/102)) ([9c32ef1](https://github.com/zigorlsp7/cv/commit/9c32ef1f184c9808d571165b1ff66bc2f7ef72cf))
+
 ## [0.1.18](https://github.com/zigorlsp7/cv/compare/v0.1.17...v0.1.18) (2026-03-11)
 
 
